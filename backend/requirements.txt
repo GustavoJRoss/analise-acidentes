@@ -1,0 +1,10 @@
+# Python 3.12+ (o Python 3.9 do macOS não fecha TLS com Overpass/OSRM)
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pandas==3.1.0
+numpy==2.5.4
+scikit-learn==1.9.1
+joblib==1.6.0
+httpx==0.28.1
+pyarrow==26.0.0
+pytest==9.1.1

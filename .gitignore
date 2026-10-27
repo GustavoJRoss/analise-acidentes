@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Base da PRF (223 MB) e artefatos gerados pelos scripts
+*.csv
+backend/artifacts/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env*.local
+frontend/next-env.d.ts
+
+.DS_Store
+frontend/*.tsbuildinfo
+
+# Configuração local do editor
+.claude/

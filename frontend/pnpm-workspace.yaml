@@ -1,0 +1,3 @@
+allowBuilds:
+  # binário nativo do resolvedor do ESLint; os pacotes pré-compilados bastam
+  unrs-resolver: false
