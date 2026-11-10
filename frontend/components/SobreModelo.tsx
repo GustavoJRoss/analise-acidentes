@@ -76,6 +76,20 @@ export function SecaoRede({ rede, metricas }: { rede: Rede; metricas: MetricasRe
           <tr className="text-texto-fraco"><td>Chute aleatório</td><td>0.5</td><td>{metricas.taxa_base_teste}</td></tr>
         </tbody>
       </table>
+      {metricas.captura_top_k && (
+        <p>
+          <b className="text-texto">Na prática:</b> no período de teste, os 10% de combinações trecho × dia × período
+          que o modelo aponta como mais arriscadas concentraram{" "}
+          <b className="text-texto">{Math.round(metricas.captura_top_k.modelo.top_10pct * 100)}%</b> dos períodos com
+          acidente (só o histórico do trecho: {Math.round(metricas.captura_top_k.ingenuo_taxa_periodo.top_10pct * 100)}%).
+          {metricas.calibracao && (
+            <>
+              {" "}As probabilidades são calibradas: na média, o previsto ficou em{" "}
+              {Math.round(metricas.calibracao.razao_prevista_observada * 100)}% do que de fato aconteceu.
+            </>
+          )}
+        </p>
+      )}
       <div>
         <div className="mb-1.5 font-medium text-texto">O que o modelo mais usa</div>
         {importancia.map(([nome, v]) => (

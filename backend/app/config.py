@@ -30,6 +30,7 @@ class Artefatos:
     acidentes = property(lambda self: self.pasta / "acidentes.parquet")
     trechos = property(lambda self: self.pasta / "trechos.parquet")
     notificacao = property(lambda self: self.pasta / "notificacao.parquet")
+    previsoes_teste = property(lambda self: self.pasta / "teste_previsoes.parquet")
 
 
 # "br": rodovias federais (PRF, trechos de 10 km) · "sc": rodovias estaduais (RENAEST, rodovia × município)

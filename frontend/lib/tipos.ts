@@ -92,6 +92,8 @@ export interface MetricasRede {
   modelos: Record<string, { roc_auc: number; pr_auc: number; brier: number }>;
   importancia: Record<string, number>;
   efeito_clima_prob_media: Record<CategoriaClima, number>;
+  captura_top_k?: Record<"modelo" | "ingenuo_taxa_periodo", Record<"top_5pct" | "top_10pct" | "top_20pct", number>>;
+  calibracao?: { razao_prevista_observada: number };
   periodo_dados: [string, string];
   corte_teste: string;
   trechos: number;

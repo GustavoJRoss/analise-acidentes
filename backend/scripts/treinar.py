@@ -54,6 +54,57 @@ def avaliar(y, p):
             "brier": round(brier_score_loss(y, p), 5)}
 
 
+def nome_trecho(trechos: pd.DataFrame, rede: str) -> pd.Series:
+    """Nome legível do trecho (para a análise de erros)."""
+    if rede == "br":
+        nome = ("BR-" + trechos["br"].astype(str) + " km " + trechos["trecho_km"].astype(str) + "–"
+                + (trechos["trecho_km"] + config.TAMANHO_TRECHO_KM).astype(str) + " (" + trechos["municipio"] + ")")
+    else:
+        nome = trechos["rodovia"] + " · " + trechos["municipio"]
+    return pd.Series(nome.to_numpy(), index=trechos["trecho_id"])
+
+
+def calibracao(y, p, bins=10) -> dict:
+    """Curva de confiabilidade em faixas de mesma quantidade de linhas (quantis da probabilidade prevista)."""
+    faixa = pd.qcut(p, bins, duplicates="drop")
+    tab = pd.DataFrame({"y": y, "p": p}).groupby(faixa, observed=True).agg(
+        prob_media=("p", "mean"), freq_observada=("y", "mean"), n=("y", "size"))
+    return {"faixas": [{k: (round(float(v), 5) if k != "n" else int(v)) for k, v in linha.items()}
+                       for linha in tab.to_dict("records")],
+            "media_prevista": round(float(np.mean(p)), 5), "media_observada": round(float(np.mean(y)), 5),
+            "razao_prevista_observada": round(float(np.mean(p) / np.mean(y)), 3)}
+
+
+def captura_top_k(y, p, fracoes=(0.05, 0.10, 0.20)) -> dict:
+    """Parcela dos trecho-períodos com acidente que caem nos k% de maior risco previsto."""
+    ordem = np.argsort(-np.asarray(p), kind="stable")
+    y_ord = np.asarray(y)[ordem]
+    return {f"top_{int(f * 100)}pct": round(float(y_ord[: int(len(y_ord) * f)].sum() / y_ord.sum()), 4)
+            for f in fracoes}
+
+
+def analise_erros(teste: pd.DataFrame, p, nomes: pd.Series, n=10) -> dict:
+    """Onde o modelo erra: trechos com mais/menos períodos com acidente que o esperado, e PR-AUC por recorte."""
+    df = teste[["trecho_id", "periodo", "data", ALVO]].assign(p=p)
+    por_trecho = df.groupby("trecho_id").agg(observados=(ALVO, "sum"), esperados=("p", "sum"))
+    por_trecho["diferenca"] = por_trecho["observados"] - por_trecho["esperados"]
+    por_trecho["nome"] = nomes.reindex(por_trecho.index).to_numpy()
+
+    def lista(tab):
+        return [{"trecho_id": i, "nome": r["nome"], "observados": int(r["observados"]),
+                 "esperados": round(float(r["esperados"]), 1)} for i, r in tab.iterrows()]
+
+    def por(col):
+        return {str(k): {"taxa": round(float(g[ALVO].mean()), 4), "prob_media": round(float(g["p"].mean()), 4),
+                         "pr_auc": round(average_precision_score(g[ALVO], g["p"]), 4)}
+                for k, g in df.groupby(col) if g[ALVO].sum() > 0}
+
+    return {"subestimados": lista(por_trecho.nlargest(n, "diferenca")),
+            "superestimados": lista(por_trecho.nsmallest(n, "diferenca")),
+            "erro_absoluto_medio_por_trecho": round(float(por_trecho["diferenca"].abs().mean()), 2),
+            "por_periodo": por("periodo"), "por_mes": por(df["data"].dt.month)}
+
+
 def main(rede: str):
     artefatos = config.REDES[rede]
     features, corte = FEATURES[rede], config.CORTE_TESTE[rede]
@@ -78,9 +129,24 @@ def main(rede: str):
         p = m.predict_proba(preparar_X(teste, categorias, feats))[:, 1]
         metricas["modelos"][nome] = avaliar(teste[ALVO], p)
         modelos_teste[nome], probs_teste[nome] = m, p
-    metricas["modelos"]["ingenuo_taxa_periodo"] = avaliar(teste[ALVO], teste["taxa_historica_periodo"].clip(0, 1))
+    p_ingenuo = teste["taxa_historica_periodo"].clip(0, 1).to_numpy()
+    metricas["modelos"]["ingenuo_taxa_periodo"] = avaliar(teste[ALVO], p_ingenuo)
     for nome, m in metricas["modelos"].items():
         print(f"  {nome:22s} {m}")
+
+    # calibração, captura top-k e análise de erros do modelo em uso (com clima)
+    y_teste, p_teste = teste[ALVO].to_numpy(), probs_teste["com_clima"]
+    metricas["calibracao"] = calibracao(y_teste, p_teste)
+    metricas["captura_top_k"] = {"modelo": captura_top_k(y_teste, p_teste),
+                                 "ingenuo_taxa_periodo": captura_top_k(y_teste, p_ingenuo)}
+    metricas["erros"] = analise_erros(teste, p_teste, nome_trecho(trechos, rede))
+    print("  calibração (prevista/observada):", metricas["calibracao"]["razao_prevista_observada"])
+    print("  captura top-k:", metricas["captura_top_k"])
+    pd.DataFrame({"trecho_id": teste["trecho_id"].astype("category").to_numpy(), "data": teste["data"].to_numpy(),
+                  "periodo": teste["periodo"].astype("category").to_numpy(), "y": y_teste.astype("int8"),
+                  "p_com_clima": p_teste.astype("float32"),
+                  "p_sem_clima": probs_teste["sem_clima"].astype("float32"),
+                  "p_ingenuo": p_ingenuo.astype("float32")}).to_parquet(artefatos.previsoes_teste)
 
     # o clima ajuda em alguma situação específica? (PR-AUC com × sem clima em subconjuntos do teste)
     subconjuntos = {"noite": teste["periodo"] == "noite", "verao": teste["temporada_verao"] == 1,
