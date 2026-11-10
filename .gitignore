@@ -19,3 +19,6 @@ frontend/*.tsbuildinfo
 
 # Configuração local do editor
 .claude/
+
+# Bases externas baixadas (RENAEST etc.)
+dados_externos/
