@@ -146,3 +146,17 @@ def test_media_de_referencia_e_probabilidade(cliente, trecho_sc):
     r = _prever(cliente, [trecho_sc])
     assert 0 < r["media_referencia"] < 1
     assert 0 < r["trechos"][0]["media_periodo"] < 1
+
+
+def test_script_de_demonstracao(capsys):
+    """scripts.prever: mesma previsão da API a partir de rodovia + km (BR) e rodovia + município (SC)."""
+    from scripts.prever import main as prever
+
+    r = prever(["--rodovia", "BR-101", "--km", "205", "--data", "2026-12-20", "--periodo", "noite"])
+    assert 0 < r["probabilidade"] < 1 and r["trechos"][0]["trecho_id"] == "101-200"
+    assert "Chance de ao menos um acidente" in capsys.readouterr().out
+    try:
+        r = prever(["--rodovia", "SC-401", "--municipio", "florianopolis", "--periodo", "tarde"])
+    except SystemExit:
+        pytest.skip("rede estadual não preparada")
+    assert 0 < r["probabilidade"] < 1 and r["trechos"][0]["rodovia"] == "SC-401"
