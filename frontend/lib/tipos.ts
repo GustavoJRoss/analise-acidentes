@@ -1,17 +1,30 @@
 export type Periodo = "madrugada" | "manha" | "tarde" | "noite";
 export type CategoriaClima = "ceu_claro" | "nublado" | "chuva" | "chuva_forte";
 export type Modo = "trecho" | "rota";
+// "br": BRs (PRF, trechos de 10 km) · "sc": rodovias estaduais (RENAEST, rodovia × município)
+export type Rede = "br" | "sc";
 
-export interface PropsTrecho {
+interface DescricaoTrecho {
   trecho_id: string;
-  br: number;
-  trecho_km: number;
+  rede: Rede;
+  rodovia: string;           // "BR-101", "SC-401"
+  rotulo: string;            // "BR-101 · km 200–210", "SC-401 · Florianópolis"
   municipio: string;
+  comprimento_km: number;
+  acidentes_ano: number;
+  densidade: number;         // acidentes por 10 km por ano
+}
+
+export interface PropsTrecho extends DescricaoTrecho {
   acidentes: number;
   mortos: number;
-  feridos_graves: number;
-  prob_dia: number;
+  periodo_dados: string;
   centro: [number, number];
+}
+
+export interface TrechoPrevisto extends DescricaoTrecho {
+  probabilidade: number;
+  media_periodo: number;
 }
 
 export interface TrechosGeoJSON {
@@ -59,14 +72,7 @@ export interface Previsao {
   probabilidade: number;
   media_referencia: number;
   razao_media: number | null;
-  trechos: {
-    trecho_id: string;
-    br: number;
-    trecho_km: number;
-    municipio: string;
-    probabilidade: number;
-    media_periodo: number;
-  }[];
+  trechos: TrechoPrevisto[];
   fatores: Fator[];
   cenario: {
     data: string;
@@ -81,7 +87,7 @@ export interface Previsao {
   };
 }
 
-export interface Metricas {
+export interface MetricasRede {
   taxa_base_teste: number;
   modelos: Record<string, { roc_auc: number; pr_auc: number; brier: number }>;
   importancia: Record<string, number>;
@@ -90,3 +96,5 @@ export interface Metricas {
   corte_teste: string;
   trechos: number;
 }
+
+export type Metricas = Partial<Record<Rede, MetricasRede>>;

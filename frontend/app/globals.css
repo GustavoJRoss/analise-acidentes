@@ -1,15 +1,63 @@
 @import "tailwindcss";
 
+/* modo escuro pela classe .dark no <html> (aplicada pelo TemaProvider), não só pela preferência do sistema */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tokens de cor: os componentes usam bg-superficie, text-texto, border-borda… e o tema troca os valores */
+:root {
+  color-scheme: light;
+  --fundo: #f8fafc;
+  --superficie: #ffffff;
+  --superficie-2: #f1f5f9;
+  --superficie-3: #e2e8f0;
+  --borda: #e2e8f0;
+  --borda-forte: #cbd5e1;
+  --texto: #0f172a;
+  --texto-suave: #475569;
+  --texto-fraco: #64748b;
+  --primaria: #2563eb;
+  --primaria-suave: #eff6ff;
+  --primaria-texto: #1e40af;
+  --mascara-mapa: #f1f5f9;
+  --sombra: 15 23 42;
+}
+
+.dark {
+  color-scheme: dark;
+  --fundo: #0b1120;
+  --superficie: #111827;
+  --superficie-2: #1e293b;
+  --superficie-3: #334155;
+  --borda: #1f2937;
+  --borda-forte: #334155;
+  --texto: #e2e8f0;
+  --texto-suave: #a3b1c6;
+  --texto-fraco: #7c8ba1;
+  --primaria: #60a5fa;
+  --primaria-suave: #172554;
+  --primaria-texto: #bfdbfe;
+  --mascara-mapa: #020617;
+  --sombra: 0 0 0;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-superficie-3: var(--superficie-3);
+  --color-borda: var(--borda);
+  --color-borda-forte: var(--borda-forte);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-texto-fraco: var(--texto-fraco);
+  --color-primaria: var(--primaria);
+  --color-primaria-suave: var(--primaria-suave);
+  --color-primaria-texto: var(--primaria-texto);
 }
 
-:root {
-  color-scheme: light;
-}
-
-/* app de tela cheia: só o painel lateral rola */
+/* o header fica fixo e cada página decide o que rola */
 html,
 body {
   height: 100%;
@@ -17,17 +65,69 @@ body {
 }
 
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--fundo);
+  color: var(--texto);
 }
 
-/* Leaflet: tooltip e controles combinando com a UI */
+/* foco visível só para teclado, igual em toda a interface */
+:where(a, button, select, summary, [role="radio"], [role="option"], [tabindex]):focus-visible {
+  outline: 2px solid var(--primaria);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* marcadores de origem/destino arrastáveis */
+.marcador-ponto {
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  cursor: grab;
+}
+.marcador-ponto:active { cursor: grabbing; }
+
+/* trecho selecionado: pulso curto ao enquadrar */
+@keyframes pulso-trecho {
+  0%, 100% { stroke-opacity: 0.9; }
+  50% { stroke-opacity: 0.2; }
+}
+.trecho-pulso { animation: pulso-trecho 0.6s ease-in-out 3; }
+
+/* Leaflet: tooltip e controles combinando com a UI, nos dois temas */
 .leaflet-container {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--superficie-2);
 }
 .leaflet-tooltip.tooltip-trecho {
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.12);
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 4px 12px rgb(var(--sombra) / 0.18);
   padding: 6px 10px;
+}
+.leaflet-tooltip-top.tooltip-trecho::before { border-top-color: var(--superficie); }
+.leaflet-tooltip-bottom.tooltip-trecho::before { border-bottom-color: var(--superficie); }
+.leaflet-tooltip-left.tooltip-trecho::before { border-left-color: var(--superficie); }
+.leaflet-tooltip-right.tooltip-trecho::before { border-right-color: var(--superficie); }
+.dark .leaflet-tooltip {
+  background: var(--superficie);
+  border-color: var(--borda);
+  color: var(--texto);
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+.dark .leaflet-control-attribution {
+  background: rgb(17 24 39 / 0.8) !important;
+  color: var(--texto-fraco);
+}
+.dark .leaflet-control-attribution a {
+  color: var(--texto-suave);
 }

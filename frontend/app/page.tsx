@@ -1,247 +1,145 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { History, MapPin, Route, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import CartaoResultado from "@/components/CartaoResultado";
-import { PainelClima, PainelOnde, PainelQuando } from "@/components/Paineis";
-import SobreModelo from "@/components/SobreModelo";
-import { api } from "@/lib/api";
-import { FAIXAS, FAIXAS_HISTORICO, isoLocal, periodoAtual } from "@/lib/formato";
-import type {
-  CategoriaClima, ClimaPrevisto, Lugar, Metricas, Modo, Opcoes, Periodo, Previsao, Rota, TrechosGeoJSON,
-} from "@/lib/tipos";
+import LayoutMapa, { Mapa } from "@/components/LayoutMapa";
+import type { Enquadramento } from "@/components/Mapa";
+import { ESTILO, Passo, Segmentado } from "@/components/paineis/base";
+import FiltroRede, { type FiltroDeRede } from "@/components/paineis/FiltroRede";
+import PainelClima from "@/components/paineis/PainelClima";
+import PainelQuando from "@/components/paineis/PainelQuando";
+import SeletorRodovia from "@/components/paineis/SeletorRodovia";
+import SeletorTrecho from "@/components/paineis/SeletorTrecho";
+import { useDados } from "@/lib/contexto";
+import { usePrevisao, useRecentes } from "@/lib/hooks";
+import { limitesDe } from "@/lib/rodovias";
+import { atualizarUrl, useParametro } from "@/lib/url";
 
-// Leaflet usa `window`: o mapa só é carregado no navegador
-const Mapa = dynamic(() => import("@/components/Mapa"), {
-  ssr: false,
-  loading: () => <div className="flex h-full items-center justify-center bg-slate-100 text-sm text-slate-500">Carregando mapa…</div>,
-});
+type Nivel = "trecho" | "rodovia";
+type Recente = { tipo: Nivel; id: string; rotulo: string };
 
-type Limites = [[number, number], [number, number]];
+const ROTULO_REDE: Record<FiltroDeRede, string> = { todas: "Todas", br: "Federais", sc: "Estaduais" };
+const mesmoRecente = (a: Recente, b: Recente) => a.tipo === b.tipo && a.id === b.id;
 
-function limitesDe(coords: number[][]): Limites {
-  const lats = coords.map((c) => c[1]);
-  const lons = coords.map((c) => c[0]);
-  return [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]];
-}
+function MapaDeRisco() {
+  const { porId, rodovias, trechos } = useDados();
+  // a seleção e o filtro moram na URL (?trecho=101-200, ?rodovia=SC-401, ?rede=sc): o link pode ser compartilhado
+  const params = useSearchParams();
+  const trechoId = params.get("trecho");
+  const rodoviaSel = params.get("rodovia");
+  const nivel: Nivel = params.get("nivel") === "rodovia" || rodoviaSel ? "rodovia" : "trecho";
+  const [filtro, setFiltro] = useParametro<FiltroDeRede>("rede", "todas", ["todas", "br", "sc"]);
 
-export default function Pagina() {
-  const [trechos, setTrechos] = useState<TrechosGeoJSON | null>(null);
-  const [opcoes, setOpcoes] = useState<Opcoes | null>(null);
-  const [metricas, setMetricas] = useState<Metricas | null>(null);
-  const [erroInicial, setErroInicial] = useState<string | null>(null);
+  const [enquadrar, setEnquadrar] = useState<Enquadramento>(null);
+  const semEnquadrar = useRef(false);
+  const recentes = useRecentes<Recente>("recentes-mapa", mesmoRecente);
 
-  const [modo, setModo] = useState<Modo>("trecho");
-  const [trechoId, setTrechoId] = useState<string | null>(null);
-  const [origem, setOrigem] = useState<Lugar | null>(null);
-  const [destino, setDestino] = useState<Lugar | null>(null);
-  const [rota, setRota] = useState<Rota | null>(null);
-  const [carregandoRota, setCarregandoRota] = useState(false);
-  const [erroRota, setErroRota] = useState<string | null>(null);
-
-  const [data, setData] = useState(() => isoLocal(new Date()));
-  const [periodo, setPeriodo] = useState<Periodo>(() => periodoAtual());
-  const [clima, setClima] = useState<CategoriaClima>("ceu_claro");
-  const [climaPrevisto, setClimaPrevisto] = useState<ClimaPrevisto | null>(null);
-  const [carregandoPrevisaoTempo, setCarregandoPrevisaoTempo] = useState(false);
-  const [erroPrevisaoTempo, setErroPrevisaoTempo] = useState<string | null>(null);
-
-  const [previsao, setPrevisao] = useState<Previsao | null>(null);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [enquadrar, setEnquadrar] = useState<{ chave: number; limites: Limites } | null>(null);
-  const painel = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    Promise.all([api.trechos(), api.opcoes(), api.modelo()])
-      .then(([t, o, m]) => {
-        setTrechos(t);
-        setOpcoes(o);
-        setMetricas(m);
-      })
-      .catch(() => setErroInicial("Não consegui carregar os dados. Confira se o backend está rodando em localhost:8000."));
-  }, []);
-
-  const porId = useMemo(
-    () => Object.fromEntries((trechos?.features ?? []).map((f) => [f.properties.trecho_id, f])),
-    [trechos],
-  );
-  const maisPerigosos = useMemo(
-    () => [...(trechos?.features ?? [])].sort((a, b) => b.properties.acidentes - a.properties.acidentes).slice(0, 6).map((f) => f.properties),
-    [trechos],
-  );
-
+  const rodovia = rodovias.find((r) => r.rodovia === rodoviaSel) ?? null;
   const trechoIds = useMemo(
-    () => (modo === "trecho" ? (trechoId ? [trechoId] : []) : (rota?.trechos.map((t) => t.trecho_id) ?? [])),
-    [modo, trechoId, rota],
+    () => (nivel === "trecho" ? (trechoId && porId[trechoId] ? [trechoId] : []) : (rodovia?.trecho_ids ?? [])),
+    [nivel, trechoId, rodovia, porId],
   );
+  const chaveSelecao = trechoIds.join(",");
+  const { previsao, carregando, erro, probPorTrecho } = usePrevisao(trechoIds);
 
-  const focarTrecho = useCallback((id: string) => {
-    const f = porId[id];
-    if (f) setEnquadrar({ chave: Date.now(), limites: limitesDe(f.geometry.coordinates.flat()) });
+  const enquadrarTrechos = useCallback((ids: string[]) => {
+    const coords = ids.flatMap((id) => porId[id]?.geometry.coordinates.flat() ?? []);
+    if (coords.length) setEnquadrar({ chave: Date.now(), limites: limitesDe(coords) });
   }, [porId]);
 
-  // ---- rota: recalcula quando origem e destino estão definidos ---------------------------------
+  // escolheu na lista, na busca ou chegou pela URL: leva o mapa até lá (clique no próprio mapa não mexe na vista)
   useEffect(() => {
-    setRota(null);
-    setErroRota(null);
-    if (!origem || !destino) return;
-    const controle = new AbortController();
-    setCarregandoRota(true);
-    api.rota(origem, destino, controle.signal)
-      .then((r) => {
-        setRota(r);
-        setEnquadrar({ chave: Date.now(), limites: limitesDe(r.geometria.coordinates) });
-      })
-      .catch((e) => !controle.signal.aborted && setErroRota((e as Error).message))
-      .finally(() => !controle.signal.aborted && setCarregandoRota(false));
-    return () => controle.abort();
-  }, [origem, destino]);
-
-  // ---- previsão: recalcula sozinha quando qualquer entrada muda --------------------------------
-  useEffect(() => {
-    if (trechoIds.length === 0) {
-      setPrevisao(null);
-      setErro(null);
+    if (!trechos || !chaveSelecao) return;
+    if (semEnquadrar.current) {
+      semEnquadrar.current = false;
       return;
     }
-    const controle = new AbortController();
-    const timer = setTimeout(() => {
-      setCarregando(true);
-      setErro(null);
-      api.prever({
-        trecho_ids: trechoIds, data, periodo, clima,
-        clima_personalizado: climaPrevisto
-          ? { chuva_mm: climaPrevisto.chuva_mm, nebulosidade: climaPrevisto.nebulosidade, temperatura: climaPrevisto.temperatura }
-          : null,
-      }, controle.signal)
-        .then(setPrevisao)
-        .catch((e) => !controle.signal.aborted && setErro((e as Error).message))
-        .finally(() => !controle.signal.aborted && setCarregando(false));
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      controle.abort();
-    };
-  }, [trechoIds, data, periodo, clima, climaPrevisto]);
+    enquadrarTrechos(chaveSelecao.split(","));
+  }, [chaveSelecao, trechos, enquadrarTrechos]);
 
-  // no celular o resultado fica no topo do painel: ao escolher um lugar, rola até ele
+  // guarda a seleção nos recentes
+  const { adicionar } = recentes;
   useEffect(() => {
-    if (trechoIds.length > 0 && !window.matchMedia("(min-width: 768px)").matches) {
-      painel.current?.scrollTo({ top: 0, behavior: "smooth" });
+    if (nivel === "trecho" && trechoId && porId[trechoId]) {
+      adicionar({ tipo: "trecho", id: trechoId, rotulo: porId[trechoId].properties.rotulo });
+    } else if (nivel === "rodovia" && rodovia) {
+      adicionar({ tipo: "rodovia", id: rodovia.rodovia, rotulo: `${rodovia.rodovia} inteira` });
     }
-  }, [trechoIds]);
+  }, [nivel, trechoId, rodovia, porId, adicionar]);
 
-  // a previsão do tempo vale para um dia/período/lugar: qualquer mudança volta ao clima manual
-  useEffect(() => {
-    setClimaPrevisto(null);
-    setErroPrevisaoTempo(null);
-  }, [data, periodo, trechoIds]);
+  const escolherNivel = (n: Nivel) => atualizarUrl({ nivel: n === "rodovia" ? "rodovia" : null });
+  const escolherTrecho = (id: string) => atualizarUrl({ trecho: id, rodovia: null, nivel: null });
+  const escolherRodovia = (nome: string) => atualizarUrl({ rodovia: nome, trecho: null, nivel: "rodovia" });
+  const limparSelecao = () => atualizarUrl({ trecho: null, rodovia: null });
 
-  async function usarPrevisaoTempo() {
-    if (trechoIds.length === 0) return;
-    setCarregandoPrevisaoTempo(true);
-    setErroPrevisaoTempo(null);
-    try {
-      // para uma rota, usa o trecho do meio como referência do tempo
-      const prev = await api.climaPrevisto(trechoIds[Math.floor(trechoIds.length / 2)], data, periodo);
-      setClima(prev.categoria);
-      setClimaPrevisto(prev);
-    } catch (e) {
-      setErroPrevisaoTempo((e as Error).message);
-    } finally {
-      setCarregandoPrevisaoTempo(false);
-    }
+  function cliqueNoTrecho(id: string) {
+    semEnquadrar.current = true;
+    // no nível "rodovia", clicar num trecho escolhe a rodovia inteira dele
+    if (nivel === "rodovia") escolherRodovia(porId[id].properties.rodovia);
+    else escolherTrecho(id);
   }
 
-  function cliqueNoMapa(lat: number, lon: number) {
-    const lugar = { nome: `Ponto no mapa (${lat.toFixed(4)}, ${lon.toFixed(4)})`, lat, lon };
-    if (!origem) setOrigem(lugar);
-    else setDestino(lugar);
-  }
+  const outrosRecentes = recentes.itens.filter((r) => !(r.tipo === "trecho" ? r.id === trechoId : r.id === rodoviaSel));
+  const resumoOnde = nivel === "trecho"
+    ? (trechoId && porId[trechoId]?.properties.rotulo) || "Nenhum trecho"
+    : rodoviaSel ? `${rodoviaSel} inteira` : "Nenhuma rodovia";
 
-  const probPorTrecho = useMemo(
-    () => Object.fromEntries((previsao?.trechos ?? []).filter((t) => trechoIds.includes(t.trecho_id)).map((t) => [t.trecho_id, t.probabilidade])),
-    [previsao, trechoIds],
-  );
-
-  const resultado = (
-    <CartaoResultado modo={modo} previsao={previsao} carregando={carregando} erro={erro}
-      temSelecao={trechoIds.length > 0} opcoes={opcoes} usandoPrevisaoTempo={climaPrevisto !== null}
-      onFocarTrecho={focarTrecho} />
+  const barra = (
+    <>
+      <Passo numero={1} titulo="Rede de rodovias" resumo={ROTULO_REDE[filtro]}>
+        <FiltroRede valor={filtro} onMudar={setFiltro} />
+      </Passo>
+      <Passo numero={2} titulo="Onde" resumo={resumoOnde} abertoNoCelular
+        acao={chaveSelecao ? (
+          <button type="button" onClick={limparSelecao} className={ESTILO.botaoSecundario} title="Limpar seleção">
+            <X size={12} aria-hidden /> Limpar
+          </button>
+        ) : undefined}>
+        {outrosRecentes.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <History size={13} aria-label="Recentes" className="text-texto-fraco" />
+            {outrosRecentes.map((r) => (
+              <button key={`${r.tipo}-${r.id}`} type="button" className={ESTILO.chip(false)}
+                onClick={() => (r.tipo === "trecho" ? escolherTrecho(r.id) : escolherRodovia(r.id))}>
+                {r.rotulo}
+              </button>
+            ))}
+            <button type="button" onClick={recentes.limpar} className="text-[11px] text-texto-fraco hover:text-texto">limpar</button>
+          </div>
+        )}
+        <div className="mb-3">
+          <Segmentado<Nivel> rotulo="Selecionar por" colunas={2} valor={nivel} onMudar={escolherNivel}
+            opcoes={[
+              { id: "trecho", conteudo: <><div className="flex items-center justify-center gap-1 font-semibold"><MapPin size={13} aria-hidden />Trecho</div><div className="text-[10px] font-normal text-texto-fraco">10 km na BR · rodovia no município na SC</div></> },
+              { id: "rodovia", conteudo: <><div className="flex items-center justify-center gap-1 font-semibold"><Route size={13} aria-hidden />Rodovia inteira</div><div className="text-[10px] font-normal text-texto-fraco">toda a extensão em SC</div></> },
+            ]} />
+        </div>
+        {nivel === "trecho"
+          ? <SeletorTrecho filtro={filtro} selecionado={trechoId} onSelecionar={escolherTrecho} />
+          : <SeletorRodovia filtro={filtro} selecionada={rodoviaSel} onSelecionar={escolherRodovia} />}
+      </Passo>
+      <PainelQuando numero={3} />
+      <PainelClima numero={4} trechoIds={trechoIds} />
+    </>
   );
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden md:flex-row">
-      <aside ref={painel} className="order-2 flex min-h-0 flex-1 flex-col overflow-y-auto border-slate-200 bg-white md:order-1 md:w-[420px] md:flex-none md:border-r">
-        <header className="border-b border-slate-100 px-5 py-4">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900">🚦 Risco nas BRs de Santa Catarina</h1>
-          <p className="text-sm text-slate-600">
-            Escolha onde, quando e com que tempo — o modelo estima a chance de acidente com base nos registros da PRF.
-          </p>
-        </header>
+    <LayoutMapa barra={barra} emCenario={Object.keys(probPorTrecho).length > 0} selecionou={chaveSelecao}
+      cartao={<CartaoResultado tipo={nivel} previsao={previsao} carregando={carregando} erro={erro}
+        trechoIds={trechoIds} onFocarTrecho={(id) => enquadrarTrechos([id])} />}
+      mapa={<Mapa trechos={trechos} filtroRede={filtro} trechoSelecionado={nivel === "trecho" ? trechoId : null}
+        probPorTrecho={probPorTrecho} enquadrar={enquadrar} onClicarTrecho={cliqueNoTrecho} />} />
+  );
+}
 
-        {erroInicial && <p className="m-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{erroInicial}</p>}
-
-        <div className="px-5 pt-4 md:hidden">{resultado}</div>
-
-        <PainelOnde modo={modo} onModo={(m) => { setModo(m); setPrevisao(null); }}
-          trecho={trechoId ? porId[trechoId]?.properties ?? null : null} maisPerigosos={maisPerigosos}
-          onSelecionarTrecho={(id) => { setTrechoId(id); focarTrecho(id); }}
-          origem={origem} destino={destino} onOrigem={setOrigem} onDestino={setDestino}
-          onInverter={() => { setOrigem(destino); setDestino(origem); }}
-          rota={rota} carregandoRota={carregandoRota} erroRota={erroRota} />
-        <PainelQuando data={data} onData={setData} periodo={periodo} onPeriodo={setPeriodo} opcoes={opcoes} />
-        <PainelClima clima={clima} onClima={(c) => { setClima(c); setClimaPrevisto(null); }} opcoes={opcoes} data={data}
-          podeUsarPrevisao={trechoIds.length > 0} climaPrevisto={climaPrevisto}
-          carregandoPrevisao={carregandoPrevisaoTempo} erroPrevisao={erroPrevisaoTempo} onUsarPrevisao={usarPrevisaoTempo} />
-        <SobreModelo metricas={metricas} />
-        <footer className="px-5 py-4 text-[11px] text-slate-400">
-          Dados: PRF (acidentes 2025), © OpenStreetMap (mapa, rotas, busca), Open-Meteo (clima). Projeto de estudo.
-        </footer>
-      </aside>
-
-      <section className="relative order-1 h-[42dvh] shrink-0 md:order-2 md:h-full md:flex-1">
-        <Mapa trechos={trechos} modo={modo} trechoSelecionado={trechoId} probPorTrecho={probPorTrecho}
-          rota={modo === "rota" ? rota : null} origem={modo === "rota" ? origem : null} destino={modo === "rota" ? destino : null}
-          enquadrar={enquadrar} onClicarTrecho={(id) => setTrechoId(id)} onClicarMapa={cliqueNoMapa} />
-
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] hidden p-4 md:flex md:justify-end">
-          <div className="pointer-events-auto max-h-[calc(100dvh-2rem)] w-[380px] overflow-y-auto">{resultado}</div>
-        </div>
-
-        <div className="absolute bottom-2 left-2 z-[500] rounded-lg border border-slate-200 bg-white/95 px-2 py-1 text-[10px] text-slate-600 shadow-sm md:bottom-3 md:left-3 md:rounded-xl md:px-3 md:py-2 md:text-[11px]">
-          {Object.keys(probPorTrecho).length > 0 ? (
-            <>
-              <div className="mb-1 hidden font-medium text-slate-700 md:block">Chance no cenário</div>
-              <div className="flex gap-2">
-                {FAIXAS.map((f) => (
-                  <span key={f.rotulo} className="flex items-center gap-1">
-                    <span className="h-1.5 w-4 rounded-full" style={{ background: f.cor }} />{f.rotulo}
-                  </span>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mb-1 font-medium text-slate-700">Acidentes em 2025<span className="hidden md:inline"> por trecho</span></div>
-              <div className="flex gap-2">
-                {FAIXAS_HISTORICO.map((f) => (
-                  <span key={f.rotulo} className="flex items-center gap-1">
-                    <span className="h-1.5 w-4 rounded-full" style={{ background: f.cor }} />{f.rotulo}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-        {modo === "rota" && !destino && (
-          <div className="absolute left-1/2 top-3 z-[500] -translate-x-1/2 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs text-white shadow md:top-auto md:bottom-16">
-            Clique no mapa para marcar {origem ? "o destino" : "a origem"}
-          </div>
-        )}
-      </section>
-    </main>
+export default function Pagina() {
+  // useSearchParams precisa de um Suspense no Next 15
+  return (
+    <Suspense>
+      <MapaDeRisco />
+    </Suspense>
   );
 }
