@@ -30,11 +30,11 @@ interface Linha {
 }
 
 const POR_PAGINA = 50;
-const FONTE: Record<Rede, string> = { br: "PRF · 2025", sc: "RENAEST · média 2019–2025" };
+const FONTE: Record<Rede, string> = { br: "PRF · média 2017–2025", sc: "RENAEST · média 2019–mai/2026" };
 const ORDENS: { id: Ordem; rotulo: string }[] = [
   { id: "acidentes_ano", rotulo: "Acidentes/ano" },
   { id: "densidade", rotulo: "Por 10 km/ano" },
-  { id: "mortos", rotulo: "Mortes" },
+  { id: "mortos", rotulo: "Mortes (total)" },
   { id: "extensao_km", rotulo: "Extensão" },
 ];
 
@@ -162,9 +162,9 @@ function Rankings() {
 
         {temEstaduais && filtro === "todas" && (
           <p className={ESTILO.aviso}>
-            <b>Compare dentro da mesma rede.</b> As BRs usam os registros da PRF de 2025; as estaduais, a média
-            2019–2025 do RENAEST (informado pelo Detran), que inclui muitos acidentes sem vítima. As duas fontes contam
-            acidentes de formas diferentes.
+            <b>Compare dentro da mesma rede.</b> As BRs usam a média 2017–2025 dos registros da PRF; as estaduais, a
+            média de jan/2019 a mai/2026 do RENAEST (informado pelo Detran), que inclui muitos acidentes sem vítima. As
+            duas fontes contam acidentes de formas diferentes. Mortes: total do período de cada fonte.
           </p>
         )}
 
@@ -228,7 +228,7 @@ function Rankings() {
                 <Cabecalho id="extensao_km" rotulo="Extensão" ordem={ordem} direcao={direcao} onOrdenar={ordenar} direita />
                 <Cabecalho id="acidentes_ano" rotulo="Acidentes/ano" ordem={ordem} direcao={direcao} onOrdenar={ordenar} direita />
                 <Cabecalho id="densidade" rotulo="Por 10 km/ano" ordem={ordem} direcao={direcao} onOrdenar={ordenar} />
-                <Cabecalho id="mortos" rotulo="Mortes" ordem={ordem} direcao={direcao} onOrdenar={ordenar} direita />
+                <Cabecalho id="mortos" rotulo="Mortes (total)" ordem={ordem} direcao={direcao} onOrdenar={ordenar} direita />
                 <th className="px-4 py-2.5 font-medium">Fonte</th>
               </tr>
             </thead>

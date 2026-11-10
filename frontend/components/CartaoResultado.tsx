@@ -172,7 +172,7 @@ export default function CartaoResultado(p: Props) {
   const n = previsao.trechos.length;
   const temEstadual = previsao.trechos.some((t) => t.rede === "sc");
   const soEstadual = previsao.trechos.every((t) => t.rede === "sc");
-  const frequencia = temEstadual ? "a frequência histórica" : "a frequência de 2025";
+  const frequencia = "a frequência histórica";
   const onde = p.tipo === "trecho" ? "neste trecho" : "nesses trechos";
   const piorTrecho = [...previsao.trechos].sort((a, b) => b.probabilidade - a.probabilidade)[0];
   const chuvaReduz = previsao.cenario.chuva_mm >= 1 && previsao.fatores.some(
