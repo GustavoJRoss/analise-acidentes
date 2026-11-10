@@ -1,4 +1,4 @@
-"""API de risco de acidentes nas BRs de SC.
+"""API de risco de acidentes nas rodovias de SC (BRs pela PRF, estaduais pelo RENAEST).
 
 Rodar (dentro de backend/):  uvicorn app.main:app --reload --port 8000
 """
@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 
 from . import clima, config, rotas
-from .modelo import ServicoPrevisao
+from .modelo import PrevisaoCombinada
 from .schemas import PedidoPrevisao, PedidoRota, Periodo
 
 estado = {}
@@ -19,13 +19,13 @@ estado = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    estado["servico"] = ServicoPrevisao()
+    estado["servico"] = PrevisaoCombinada()
     estado["casador"] = rotas.CasadorDeRota()
     yield
     estado.clear()
 
 
-app = FastAPI(title="Risco de acidentes — BRs de SC", lifespan=lifespan)
+app = FastAPI(title="Risco de acidentes — rodovias de SC", lifespan=lifespan)
 
 
 def _erro_externo(servico: str, exc: Exception):
@@ -59,7 +59,7 @@ def opcoes():
 @app.post("/api/prever")
 def prever(pedido: PedidoPrevisao):
     servico = estado["servico"]
-    desconhecidos = [t for t in pedido.trecho_ids if t not in servico.estado.index]
+    desconhecidos = [t for t in pedido.trecho_ids if not servico.conhece(t)]
     if desconhecidos:
         raise HTTPException(404, f"Trechos desconhecidos: {', '.join(desconhecidos[:5])}")
     personalizado = pedido.clima_personalizado.model_dump() if pedido.clima_personalizado else None
@@ -90,7 +90,7 @@ async def busca(q: str = Query(min_length=3, max_length=120)):
 @app.get("/api/clima-previsto")
 async def clima_previsto(trecho_id: str, data: date, periodo: Periodo):
     servico = estado["servico"]
-    if trecho_id not in servico.estado.index:
+    if not servico.conhece(trecho_id):
         raise HTTPException(404, "Trecho desconhecido")
     hoje = date.today()
     if not hoje <= data <= hoje + timedelta(days=15):

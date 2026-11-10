@@ -14,8 +14,8 @@ OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 SC_VIEWBOX = "-53.9,-25.9,-48.3,-29.45"  # lon_min, lat_max, lon_max, lat_min
 RAIO_TERRA_M = 6_371_000
-DIST_MAX_VIA_M = 50       # ponto da rota a até 50 m de uma BR conta como "na BR"
-MIN_PONTOS_TRECHO = 3     # ignora cruzamentos rápidos (viadutos, passagens sobre a BR)
+DIST_MAX_VIA_M = 50       # ponto da rota a até 50 m de uma rodovia conta como "na rodovia"
+MIN_PONTOS_TRECHO = 3     # ignora cruzamentos rápidos (viadutos, passagens sobre a rodovia)
 ESPACAMENTO_M = 100
 
 _trava_nominatim = threading.Lock()
@@ -24,7 +24,9 @@ _ultima_chamada = [0.0]
 
 class CasadorDeRota:
     def __init__(self):
-        pontos = pd.read_parquet(config.ARQ_PONTOS_VIA)
+        # pontos das duas redes juntos: a rota pode passar por BRs e por rodovias estaduais
+        pontos = pd.concat([pd.read_parquet(a.pontos_via) for a in config.REDES.values() if a.modelo.exists()],
+                           ignore_index=True)
         self.trecho_ids = pontos["trecho_id"].values
         self.arvore = BallTree(np.radians(pontos[["lat", "lon"]].values), metric="haversine")
 
