@@ -22,3 +22,6 @@ frontend/*.tsbuildinfo
 
 # Bases externas baixadas (RENAEST etc.)
 dados_externos/
+
+# Pacote de artefatos para a GitHub Release
+dist/
