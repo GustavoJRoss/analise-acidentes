@@ -8,3 +8,7 @@ joblib==1.6.0
 httpx==0.28.1
 pyarrow==26.0.0
 pytest==9.1.1
+shapely==2.2.0
+rapidfuzz==3.14.6
+gdown==6.5.1
+pdfplumber==0.11.10

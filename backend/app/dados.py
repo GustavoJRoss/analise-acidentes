@@ -1,4 +1,6 @@
-"""Carga do CSV da PRF: filtra SC e passa de uma linha por pessoa para uma linha por acidente."""
+"""Carga dos CSVs da PRF (2017–2025): filtra SC e passa de uma linha por pessoa para uma linha por acidente."""
+from pathlib import Path
+
 import pandas as pd
 
 from . import config
@@ -20,9 +22,60 @@ def id_trecho(br, trecho_km) -> str:
     return f"{int(br)}-{int(trecho_km)}"
 
 
-def carregar_acidentes(csv_path=config.CSV_PATH) -> pd.DataFrame:
-    raw = pd.read_csv(csv_path, sep=";", encoding="latin1", decimal=",", usecols=COLUNAS, low_memory=False)
-    pessoas = raw[raw["uf"] == config.UF]
+def arquivo_prf(ano: int, forcar: bool = False) -> Path:
+    """Caminho do CSV (ou ZIP) da PRF de um ano. Baixa do Google Drive (gdown) se ainda não existe."""
+    if ano == 2025 and config.CSV_PATH.exists() and not forcar:
+        return config.CSV_PATH
+    for nome in (f"prf_{ano}.zip", f"acidentes{ano}_todas_causas_tipos.csv", f"acidentes{ano}_todas_causas_tipos.zip"):
+        if (config.PASTA_PRF / nome).exists() and not forcar:
+            return config.PASTA_PRF / nome
+    destino = config.PASTA_PRF / f"prf_{ano}.zip"
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        import gdown
+        gdown.download(id=config.IDS_DRIVE_PRF[ano], output=str(destino), quiet=True)
+    except Exception as exc:  # o Google Drive às vezes bloqueia downloads automáticos
+        destino.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Não consegui baixar a base da PRF de {ano} ({exc}). Baixe em {config.URL_PORTAL_PRF} "
+            f"(Acidentes → Agrupados por pessoa – Todas as causas e tipos de acidentes, {ano}) e coloque o ZIP "
+            f"ou o CSV em {config.PASTA_PRF}/") from exc
+    return destino
+
+
+def _pessoas_sc(caminho: Path) -> pd.DataFrame:
+    """Lê um CSV da PRF (o pandas abre o ZIP direto) e devolve só as linhas de SC."""
+    blocos = pd.read_csv(caminho, sep=";", encoding="latin1", decimal=",", low_memory=False, dtype=str,
+                         usecols=lambda c: c in COLUNAS, chunksize=500_000)
+    pessoas = pd.concat([b[b["uf"] == config.UF] for b in blocos], ignore_index=True)
+    for col in set(COLUNAS) - set(pessoas.columns):
+        pessoas[col] = pd.NA
+    return pessoas
+
+
+def _numero(serie: pd.Series) -> pd.Series:
+    """'303,5' ou '303.5' → 303.5."""
+    return pd.to_numeric(serie.astype(str).str.replace(",", ".", regex=False), errors="coerce")
+
+
+def _data(serie: pd.Series) -> pd.Series:
+    """Os arquivos usam AAAA-MM-DD; alguns anos antigos da PRF usaram DD/MM/AAAA."""
+    data = pd.to_datetime(serie, format="%Y-%m-%d", errors="coerce")
+    falhas = data.isna()
+    data[falhas] = pd.to_datetime(serie[falhas], format="%d/%m/%Y", errors="coerce")
+    if data.isna().any():
+        raise ValueError(f"{data.isna().sum()} datas inválidas na base da PRF: {serie[data.isna()].head().tolist()}")
+    return data
+
+
+def carregar_acidentes(arquivos=None) -> pd.DataFrame:
+    """arquivos: lista de CSV/ZIP da PRF; por padrão, os de config.ANOS_PRF (baixados se faltarem)."""
+    arquivos = arquivos if arquivos is not None else [arquivo_prf(a) for a in config.ANOS_PRF]
+    pessoas = pd.concat([_pessoas_sc(Path(a)) for a in arquivos], ignore_index=True)
+    for col in ["id", "pesid", "br", "ordem_tipo_acidente", "ilesos", "feridos_leves", "feridos_graves", "mortos"]:
+        pessoas[col] = _numero(pessoas[col])
+    for col in ["km", "latitude", "longitude"]:
+        pessoas[col] = _numero(pessoas[col])
 
     vitimas = (pessoas.drop_duplicates(["id", "pesid"])
                .groupby("id")[["ilesos", "feridos_leves", "feridos_graves", "mortos"]].sum())
@@ -33,8 +86,14 @@ def carregar_acidentes(csv_path=config.CSV_PATH) -> pd.DataFrame:
                  .drop(columns=["pesid", "ilesos", "feridos_leves", "feridos_graves", "mortos", "uf"])
                  .merge(vitimas, on="id")
                  .dropna(subset=["br", "km", "latitude", "longitude"]))
+    lat, lon = config.BBOX_SC["lat"], config.BBOX_SC["lon"]
+    dentro = acidentes["latitude"].between(*lat) & acidentes["longitude"].between(*lon)
+    if (~dentro).any():
+        print(f"  {(~dentro).sum()} acidentes com coordenada fora de SC descartados")
+    acidentes = acidentes[dentro].copy()
 
-    acidentes["data"] = pd.to_datetime(acidentes["data_inversa"])
+    acidentes["id"] = acidentes["id"].astype(int)
+    acidentes["data"] = _data(acidentes["data_inversa"])
     acidentes["hora"] = pd.to_datetime(acidentes["horario"], format="%H:%M:%S").dt.hour
     acidentes["periodo"] = periodo_da_hora(acidentes["hora"])
     acidentes["br"] = acidentes["br"].astype(int)
@@ -44,7 +103,7 @@ def carregar_acidentes(csv_path=config.CSV_PATH) -> pd.DataFrame:
 
 
 def resumo_trechos(acidentes: pd.DataFrame) -> pd.DataFrame:
-    """Uma linha por trecho: localização representativa e totais de 2025."""
+    """Uma linha por trecho: localização representativa e totais do período (e a média por ano)."""
     def moda(s):
         return s.mode().iat[0]
 
@@ -55,6 +114,12 @@ def resumo_trechos(acidentes: pd.DataFrame) -> pd.DataFrame:
                     acidentes=("id", "size"), mortos=("mortos", "sum"),
                     feridos_graves=("feridos_graves", "sum"))
                .reset_index())
+    trechos["acidentes_ano"] = (trechos["acidentes"] / config.ANOS_COBERTOS_PRF).round(1)
+    return adicionar_celula(trechos)
+
+
+def adicionar_celula(trechos: pd.DataFrame) -> pd.DataFrame:
+    """Célula da grade de clima (~0,25°) mais próxima do ponto representativo de cada trecho."""
     celula = config.TAMANHO_CELULA_CLIMA
     trechos["celula_lat"] = (trechos["lat"] / celula).round() * celula
     trechos["celula_lon"] = (trechos["lon"] / celula).round() * celula
