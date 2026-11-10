@@ -1,204 +1,192 @@
 # Risco de acidentes nas rodovias de Santa Catarina
 
-Projeto de **análise de dados** construído a partir de dados abertos de acidentes de trânsito: os da **Polícia
-Rodoviária Federal (PRF)**, para as BRs, e os do **RENAEST/Senatran**, para as rodovias estaduais. Eles são
-cruzados com outras fontes públicas: OpenStreetMap (geometria das rodovias, nomes de vias, rotas e busca de
-endereços), IBGE (limites municipais), DNIT (volume de tráfego das BRs) e Open-Meteo (clima histórico e previsão
-do tempo).
+**Projeto final de Aprendizagem de Máquina** · Gustavo Ross · Kevin C. El Azar · Guilherme Assis
 
-Há dois modelos preditivos, um para cada rede de rodovias:
-- **BRs:** acidentes de 2017–2025 da PRF, em trechos de 10 km;
-- **rodovias estaduais (SC-xxx):** acidentes de jan/2019 a mai/2026 do RENAEST, com a rodovia dentro de cada
-  município como trecho.
+Dois modelos de classificação estimam a **chance de acontecer ao menos um acidente** num trecho de rodovia de SC,
+num dia e num período do dia (madrugada, manhã, tarde, noite), a partir de dados abertos de acidentes, clima,
+tráfego e geometria das vias. O resultado pode ser consultado numa interface web com mapa, num script de linha de
+comando ou no notebook final.
 
-A partir de um **trecho** (ou de uma **rota** entre dois pontos, que pode passar pelas duas redes), de uma
-**data**, de um **período do dia** e do **clima**, eles estimam a probabilidade de ocorrer ao menos um acidente.
-Tudo isso pode ser explorado numa interface web com mapa.
+![Previsão para a BR-101 em São José, à noite](docs/img/previsao.png)
 
-```
-dados_externos/                        bases baixadas pelos scripts (PRF, RENAEST, IBGE, OSM, DNIT; fora do git)
-previsao_acidentes_sc.ipynb            notebook de estudo (exploração e primeiro modelo)
-estudo_eda_pca.ipynb                   estudo: exploratória, correlação, PCA e modelos com × sem PCA (BRs)
-backend/                               Python + FastAPI: dados, treino e API de previsão
-frontend/                              Next.js + Leaflet/OpenStreetMap: interface
-```
+## Objetivo e público-alvo
 
-## Fontes de dados
+**Problema:** acidentes se concentram em poucos trechos e variam com o dia, o horário e o clima, mas essa
+informação está espalhada em bases públicas difíceis de cruzar. O projeto transforma essas bases numa pergunta
+simples: *qual a chance de acidente neste trecho, neste dia e neste período?*
 
-### Base principal: acidentes da PRF
-
-Os arquivos `acidentes{ano}_todas_causas_tipos.csv` de **2017 a 2025** vêm do portal de **Dados Abertos da PRF**:
-
-- Portal: <https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf>
-- Seção **Acidentes**, conjunto **"Agrupados por pessoa – Todas as causas e tipos de acidentes"**, um por ano.
-- Cada linha é uma **pessoa envolvida** num acidente registrado pela PRF em rodovia federal, com data, horário,
-  UF, BR, km, município, causa, tipo, condição meteorológica, coordenadas e estado físico dos envolvidos.
-- Formato: CSV com separador `;`, decimal `,` e codificação `latin1`.
-
-Os arquivos (10–14 MB cada, compactados) ficam no Google Drive da PRF. `scripts.preparar_dados` baixa todos
-sozinho, com o `gdown`, para `dados_externos/prf/`; os IDs estão em `backend/app/config.py` (`IDS_DRIVE_PRF`).
-Se o Google Drive bloquear o download, o erro explica o que fazer: baixe o ZIP do ano no portal e coloque em
-`dados_externos/prf/`. Um `acidentes2025_todas_causas_tipos.csv` na raiz do projeto também é aceito. O projeto
-usa só os registros de **SC**.
-
-### Dados complementares (APIs públicas)
-
-| Fonte | Uso no projeto |
+| Quem usaria | Para quê |
 |---|---|
-| [OpenStreetMap / Overpass API](https://overpass-api.de/) | Geometria das BRs e rodovias estaduais em SC e nomes de todas as vias (para casar os endereços do RENAEST) |
-| [IBGE – API de malhas](https://servicodados.ibge.gov.br/api/docs/malhas) | Limites dos municípios (trechos estaduais e máscara do mapa) |
-| [OSRM](https://project-osrm.org/) | Cálculo de rotas entre origem e destino |
-| [Nominatim](https://nominatim.org/) | Busca de endereços (geocodificação) |
-| [DNIT – Fatores VMD e UPE por trecho](https://www.gov.br/dnit/pt-br/rodovias/operacoes-rodoviarias/faixa-de-dominio) | Volume médio diário (VMD) de cada segmento SNV das BRs, lido do PDF e levado para os trechos de 10 km |
-| [Open-Meteo](https://open-meteo.com/) | Clima histórico (reanálise ERA5) para treinar os modelos e previsão do tempo de até 16 dias |
-| Tiles do OpenStreetMap | Mapa base da interface (no tema escuro, os mesmos tiles invertidos por CSS) |
+| Motoristas e transportadoras | escolher horário e rota de viagem; ver quais trechos do caminho pedem mais atenção |
+| PRF e DER/SC | decidir **onde e quando** concentrar fiscalização, sinalização e atendimento |
+| Defesa Civil, municípios, imprensa | priorizar trechos críticos e comunicar risco em feriados e na temporada de verão |
 
-### Rodovias estaduais: RENAEST
+Há um modelo para cada rede de rodovias, porque as fontes são diferentes:
 
-O [RENAEST/Senatran](https://dados.transportes.gov.br/dataset/renaest) reúne acidentes de todas as vias
-(municipais, estaduais e federais) informados pelos Detrans. É baixado automaticamente: um ZIP de cerca de
-530 MB, guardado em `dados_externos/`, fora do git.
+- **BRs (federais):** acidentes da PRF de 2017–2025, em trechos de 10 km;
+- **SC-xxx (estaduais):** acidentes do RENAEST de jan/2019 a mai/2026, com a rodovia dentro de cada município como
+  trecho.
 
-Em SC, porém, não vêm coordenadas, km, tipo de rodovia nem clima. A localização disponível é o município e o nome
-da via, em texto livre. Por isso o projeto limpa esse nome (`backend/app/vias.py`) e o casa com as vias do
-OpenStreetMap no mesmo município (`backend/app/renaest.py`). Assim, por exemplo, "RODOVIA JOSE CARLOS DAUX",
-"SC 401" e "ROD GOV ADERBAL RAMOS DA SILV" passam a contar todos como SC-401.
+## Estrutura do repositório
 
-Cerca de 90% dos acidentes casam com uma via. Os que não casam ficam sem via: nenhum recebe rodovia por chute.
-Uma rua casada pelo nome só herda o código de rodovia se a maioria das vias do OSM com esse nome no município
-faz parte da rodovia, ou se o nome oficial é "Rodovia …". Assim, uma rua inteira não vira SC-xxx porque um
-único segmento dela é rodovia.
+```
+projeto_final.ipynb       notebook final: problema → dados → tratamentos → modelo → avaliação → erros → demonstração
+notebooks/estudos/        estudos intermediários (primeiro modelo; exploração, correlação e PCA com a PRF 2025)
+backend/                  Python: preparação dos dados, treino, API (FastAPI) e script de demonstração
+frontend/                 Next.js + Leaflet/OpenStreetMap: interface web
+docs/                     capturas de tela e roteiro da apresentação
+dados_externos/           bases baixadas pelos scripts (fora do git)
+```
 
-Os dados do OpenStreetMap são © colaboradores do OpenStreetMap, sob licença ODbL. Os dados do Open-Meteo estão
-sob CC BY 4.0.
+## Dados
+
+| Fonte | O que traz | Uso |
+|---|---|---|
+| [PRF – Dados Abertos](https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf) | Acidentes nas BRs, 2017–2025 ("Agrupados por pessoa – Todas as causas e tipos"): data, hora, BR, km, coordenadas, vítimas | Alvo e histórico da rede **br** |
+| [RENAEST/Senatran](https://dados.transportes.gov.br/dataset/renaest) | Acidentes de todas as vias informados pelos Detrans (~530 MB) | Alvo e histórico da rede **sc** |
+| [OpenStreetMap / Overpass](https://overpass-api.de/) | Geometria das BRs e rodovias estaduais; nomes de todas as vias | Trechos, casamento de endereços, mapa |
+| [IBGE – API de malhas](https://servicodados.ibge.gov.br/api/docs/malhas) | Limites dos municípios | Trecho estadual = rodovia × município |
+| [Open-Meteo](https://open-meteo.com/) | Clima histórico (reanálise ERA5) e previsão de até 16 dias | Chuva, nebulosidade, temperatura |
+| [DNIT – Fatores VMD e UPE](https://www.gov.br/dnit/pt-br/rodovias/operacoes-rodoviarias/faixa-de-dominio) | Volume médio diário de veículos por segmento das BRs (PDF) | Variável de tráfego (BRs) |
+| [OSRM](https://project-osrm.org/) e [Nominatim](https://nominatim.org/) | Rotas e busca de endereços | Interface e script de demonstração |
+
+Todas as bases são baixadas pelos scripts. A PRF fica no Google Drive do órgão e é baixada com `gdown`; se o
+Drive bloquear, o erro explica como baixar o ZIP do ano à mão para `dados_externos/prf/`. Os dados do
+OpenStreetMap são © colaboradores do OpenStreetMap (ODbL); os do Open-Meteo, CC BY 4.0.
 
 ## Como rodar
 
-Pré-requisitos: Python **3.12+** e Node 20+ com pnpm. O Python 3.9 que vem com o macOS não consegue abrir
-conexão HTTPS com o Overpass e o OSRM.
+Pré-requisitos: Python **3.12+**, e Node 20+ com pnpm para a interface.
 
-### 1. Backend: preparar os dados, treinar e subir a API
+### Rápido: com os modelos já treinados (recomendado para avaliar)
 
 ```bash
 cd backend
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-# BRs (PRF)
-.venv/bin/python -m scripts.preparar_dados         # PRF 2017–2025 → parquet + geometria OSM + VMD DNIT + clima
-.venv/bin/python -m scripts.treinar                # treina, avalia e salva em artifacts/ (~15 s)
-# rodovias estaduais (RENAEST) — opcional: sem isso o app mostra só as BRs
-.venv/bin/python -m scripts.preparar_estaduais     # baixa RENAEST/IBGE/OSM, casa endereços, clima 2019–2026
-.venv/bin/python -m scripts.treinar --rede sc      # salva em artifacts/estaduais/
-.venv/bin/uvicorn app.main:app --reload --port 8000
+.venv/bin/pip install -r requirements-notebook.txt   # inclui requirements.txt + Jupyter/matplotlib
+.venv/bin/python -m scripts.baixar_artefatos         # ~26 MB da Release do GitHub → backend/artifacts/
+
+# demonstração pela linha de comando
+.venv/bin/python -m scripts.prever --rodovia BR-101 --km 205 --data 2026-12-24 --periodo noite --clima chuva_forte
+.venv/bin/python -m scripts.prever --rodovia SC-401 --municipio Florianópolis --periodo tarde
+.venv/bin/python -m scripts.prever --endereco "Ponte Hercílio Luz, Florianópolis" --periodo manha
+
+# interface web (a partir da raiz do repositório)
+cd .. && (cd frontend && pnpm install) && bash rodar.sh   # API :8000 + interface http://localhost:3000
 ```
 
-Os downloads ficam em cache: o clima em `backend/artifacts/` (por ano e por célula, compartilhado entre as
-redes) e a PRF, o RENAEST, o IBGE, o DNIT e as vias do OSM em `dados_externos/`. Para baixar tudo de novo, use
-`--forcar` no script de preparação.
+O notebook final (`projeto_final.ipynb`) roda a partir da raiz do repositório com o kernel do `.venv`, em menos de
+um minuto, sem baixar nada.
 
-`python -m scripts.relatorio_dados --comparar` mostra a qualidade dos dados (acidentes por ano, casamento de
-endereços, trechos sem acidente, cobertura do clima) e as métricas de cada versão em
-`artifacts/historico_metricas/`.
+### Completo: reproduzir do zero
 
-O clima de vários anos passa do limite por minuto do Open-Meteo gratuito. O script espera e continua sozinho. Se
-ele parar, rode de novo: os lotes já baixados ficam guardados.
-
-Testes: `.venv/bin/python -m pytest`. Para rodar sem chamar os serviços do OSM, acrescente `-m "not externo"`.
-
-### 2. Frontend
+Baixa ~700 MB de bases públicas e leva bastante tempo, principalmente pelo clima (o script respeita o limite do
+Open-Meteo gratuito, espera e continua; se parar, rode de novo, porque os lotes ficam em cache).
 
 ```bash
-cd frontend
-pnpm install
-pnpm dev        # http://localhost:3000
+cd backend
+.venv/bin/python -m scripts.preparar_dados         # BRs: PRF 2017–2025 + geometria OSM + VMD DNIT + clima
+.venv/bin/python -m scripts.treinar                # treina, avalia e salva em artifacts/
+.venv/bin/python -m scripts.preparar_estaduais     # estaduais: RENAEST + IBGE + OSM, casa endereços, clima
+.venv/bin/python -m scripts.treinar --rede sc      # salva em artifacts/estaduais/
+.venv/bin/python -m scripts.relatorio_dados --comparar   # qualidade dos dados e evolução das métricas
+.venv/bin/python -m pytest -m "not externo"        # testes (sem chamar serviços externos)
 ```
 
-O Next repassa `/api/*` para o backend (veja `next.config.ts` e `BACKEND_URL` em `.env.example`), por isso não
-é preciso configurar CORS.
+`python -m scripts.empacotar_artefatos` gera o `dist/artefatos.zip` publicado na Release.
 
-## Como funciona
+## Metodologia
 
-| Etapa | Onde | O que faz |
+**Unidade de previsão:** trecho × dia × período de 6 h. Alvo = 1 se houve ao menos um acidente (2–3% dos casos).
+
+| Etapa | Onde | O que faz e por quê |
 |---|---|---|
-| Dados PRF | `backend/app/dados.py` | Baixa 2017–2025, filtra SC e passa de uma linha por pessoa para uma linha por acidente. Valida datas e coordenadas. Define o trecho (BR + faixa de 10 km) e o período do dia |
-| Dados RENAEST | `backend/app/renaest.py`, `backend/app/vias.py` | Baixa o RENAEST e separa SC. Limpa o endereço digitado e o casa com uma via do OSM no mesmo município (código no texto, nome, nome sem o tipo, prefixo de texto cortado, nome parecido) |
-| Mapa | `backend/app/osm.py` | BRs: pontos da via a até 300 m de um acidente recebem o km dele, e o km dos pontos entre eles é interpolado. Estaduais: cada rodovia é cortada pelos limites municipais. Nas duas redes entram também trechos sem nenhum acidente |
-| Tráfego | `backend/app/trafego.py` | Lê o PDF de VMD do DNIT (SC) e calcula o VMD de cada trecho de 10 km, ponderado pela extensão |
-| Clima | `backend/app/clima.py` | Baixa chuva, nebulosidade e temperatura **de todos os dias** no Open-Meteo, numa grade de 0,25° |
-| Features | `backend/app/features.py` | Calendário (feriados, fim de semana, verão, pandemia), período, localização, clima, histórico do trecho (até o dia anterior: taxa e acidentes nos últimos 12 meses), VMD (BRs) e nível de notificação do RENAEST (estaduais). É o **mesmo código** no treino e na API |
-| Modelos | `backend/scripts/treinar.py` | HistGradientBoosting sobre trecho × dia × período, um por rede, com split temporal. Os 180 primeiros dias ficam fora do treino (histórico curto demais) |
-| API | `backend/app/main.py`, `backend/app/modelo.py` | `/api/trechos`, `/api/prever` (combina as duas redes numa rota), `/api/rota` (OSRM), `/api/busca` (Nominatim), `/api/clima-previsto`, `/api/modelo` |
+| Dados PRF | `backend/app/dados.py` | Filtra SC e passa de uma linha por pessoa para uma por acidente; valida datas e coordenadas; define o trecho (BR + faixa de 10 km) |
+| Dados RENAEST | `backend/app/renaest.py`, `vias.py` | O RENAEST de SC não tem coordenadas nem km, só o endereço digitado. O endereço é limpo e casado com uma via do OSM no mesmo município (~90% casam). Uma rua só herda o código da rodovia se a maioria dos seus segmentos é rodovia, para uma rua inteira não virar SC-xxx por causa de um segmento |
+| Trechos | `backend/app/osm.py` | Construídos pela geometria do OSM, não só onde houve acidente: evita o viés de só olhar trechos perigosos (26 trechos estaduais entram com zero acidentes) |
+| Tráfego | `backend/app/trafego.py` | VMD do DNIT por trecho de 10 km, ponderado pela extensão |
+| Clima | `backend/app/clima.py` | Clima **de todos os dias** (o campo de clima da PRF só existe quando houve acidente e vazaria o alvo). Falhas são preenchidas pela climatologia, não por 0 |
+| Features | `backend/app/features.py` | Histórico do trecho só até o dia anterior (sem vazamento), calendário (feriado, véspera, verão, pandemia), período, localização, clima, VMD e nível de notificação do RENAEST. **Mesmo código no treino e na API** |
+| Modelo | `backend/scripts/treinar.py` | `HistGradientBoostingClassifier`, um por rede: capta interações, aceita ausentes e categorias, com restrição monotônica no histórico. Regressão logística e PCA foram testados nos estudos e ficaram abaixo |
+| Avaliação | `backend/scripts/treinar.py` | **Divisão temporal**: treina no passado e testa no último ano. ROC-AUC, PR-AUC, Brier, calibração, captura top-k, clima por subconjunto, importância por permutação e análise de erros por trecho, período e mês |
 
-**Por que não usar o clima do CSV da PRF?** Esse campo só existe quando houve acidente. O modelo nunca veria
-"dia de chuva sem acidente", e o resultado seria vazamento de informação. Por isso o clima vem do Open-Meteo,
-medido em todos os dias.
+Detalhes, gráficos e justificativas de cada tratamento estão no [`projeto_final.ipynb`](projeto_final.ipynb).
 
 ## Resultados
 
-**BRs** (PRF; 249 trechos; treina em jul/2017–dez/2024 e testa em 2025):
+**BRs** (249 trechos; treina em jul/2017–dez/2024, testa em 2025):
 
-| Modelo | ROC-AUC | PR-AUC |
-|---|---|---|
-| HistGradientBoosting com clima (em uso) | 0,825 | 0,145 |
-| HistGradientBoosting sem clima | 0,825 | 0,144 |
-| Só o histórico do trecho no período | 0,818 | 0,135 |
-| Chute aleatório | 0,5 | 0,021 |
+| Modelo | ROC-AUC | PR-AUC | Top 10% captura |
+|---|---|---|---|
+| HistGradientBoosting com clima (em uso) | 0,825 | 0,145 | 51% |
+| HistGradientBoosting sem clima | 0,825 | 0,144 | — |
+| Só o histórico do trecho no período | 0,818 | 0,135 | 50% |
+| Chute aleatório | 0,5 | 0,021 | 10% |
 
-**Rodovias estaduais** (RENAEST; 443 trechos rodovia × município; treina em jul/2019–mai/2025 e testa em
-jun/2025–mai/2026):
+**Rodovias estaduais** (443 trechos; treina em jul/2019–mai/2025, testa em jun/2025–mai/2026):
 
-| Modelo | ROC-AUC | PR-AUC |
-|---|---|---|
-| HistGradientBoosting com clima (em uso) | 0,896 | 0,328 |
-| HistGradientBoosting sem clima | 0,895 | 0,328 |
-| Só o histórico do trecho no período | 0,894 | 0,315 |
-| Chute aleatório | 0,5 | 0,029 |
+| Modelo | ROC-AUC | PR-AUC | Top 10% captura |
+|---|---|---|---|
+| HistGradientBoosting com clima (em uso) | 0,896 | 0,328 | 66% |
+| HistGradientBoosting sem clima | 0,895 | 0,328 | — |
+| Só o histórico do trecho no período | 0,894 | 0,315 | 65% |
+| Chute aleatório | 0,5 | 0,029 | 10% |
 
-Os números não são diretamente comparáveis com as versões anteriores (1 ano de PRF, só trechos com acidente),
-porque o período de teste e o universo de trechos mudaram. A evolução de cada mudança está em
-`artifacts/historico_metricas/`.
+"Top 10% captura": parcela dos trecho-períodos com acidente no ano de teste que caem nos 10% apontados como mais
+arriscados. Acurácia não é usada: prever sempre "sem acidente" acertaria ~98%.
 
-Com 2017–2025, a chuva forte passou a *aumentar* um pouco a chance prevista nas duas redes. Ainda assim, o clima
-não melhora as métricas, nem quando o teste é restrito a noites, verão ou dias de chuva
-(`clima_por_subconjunto` em `metricas.json`). O VMD do DNIT também quase não pesa: com nove anos de histórico,
-a taxa de acidentes do trecho já carrega o efeito do tráfego.
+**Conclusões:**
 
-## Interface
+1. **O risco é sobretudo uma questão de *onde*.** O modelo supera todas as linhas de base, mas por pouco o
+   histórico do trecho: a maior parte do sinal está nele. Para decidir onde fiscalizar, o histórico já diz muito;
+   o modelo acrescenta o *quando* (período, dia, feriado) de forma consistente.
+2. **As probabilidades são calibradas:** na média, o previsto ficou em 96% (BRs) e 99% (estaduais) do observado,
+   e a curva de calibração segue a diagonal. Por isso a interface pode mostrar "X% de chance".
+3. **Clima e tráfego quase não acrescentam.** Na média, a chuva forte aumenta um pouco o risco previsto, mas o
+   efeito muda por trecho (em trechos urbanos movimentados pode reduzir, porque tira carros da rua) e não melhora
+   a ordenação nem em noites, verão ou dias de chuva. O VMD já está embutido no histórico do trecho.
+4. **Onde o modelo erra:** nos trechos mais movimentados que mudam de patamar de um ano para outro (ex.: BR-280 em
+   Araquari, SC-412 em Itajaí acima do previsto) e na madrugada, que tem poucos acidentes.
 
-| Página | O que faz |
+A evolução das métricas a cada tratamento está em `backend/artifacts/historico_metricas/` e no notebook.
+
+## Demonstração
+
+| Forma | Como |
 |---|---|
-| Mapa de risco (`/`) | Filtra por rede (todas, BRs, estaduais) e escolhe um **trecho** ou a **rodovia inteira**. Mostra a probabilidade no cenário (data, período, clima) e o que mais pesa. A seleção fica na URL (`?trecho=…`, `?rodovia=…`) |
-| Planejar viagem (`/viagem`) | Rota origem → destino (OSRM), com os trechos de BR e estaduais da viagem na ordem |
-| Rankings (`/rankings`) | Rodovias ou trechos com mais acidentes, filtráveis por rede, município e busca. Cada linha abre no mapa |
-| Sobre os dados (`/sobre`) | Fontes, como funciona, métricas dos dois modelos e limitações |
+| Interface web | `bash rodar.sh` → http://localhost:3000: mapa de risco por trecho ou rodovia, planejamento de viagem (`/viagem`), rankings e página "Sobre os dados" com métricas e limitações |
+| Linha de comando | `python -m scripts.prever` (exemplos em "Como rodar"): uma nova entrada → probabilidade, comparação com a média do trecho e os fatores que mais pesam |
+| Notebook | seção 10 do `projeto_final.ipynb` |
 
-O tema claro/escuro segue o sistema e pode ser trocado no header. A escolha fica salva no navegador.
+| Mapa de risco | Rankings |
+|---|---|
+| ![Mapa](docs/img/mapa.png) | ![Rankings](docs/img/rankings.png) |
 
-## Limitações (também explicadas na interface)
+## Limitações
 
-- Os modelos aprendem sobretudo *onde* e *quando* os acidentes já aconteceram. O ganho sobre a regra simples
-  "histórico do trecho no período" é pequeno.
-- **VMD de uma única data:** o volume de tráfego do DNIT é fixo por trecho e não varia com o dia ou a época do
-  ano. Não existe VMD para as rodovias estaduais.
-- **Rodovias estaduais sem posição exata:** em SC o RENAEST não traz coordenadas nem km. O trecho é a rodovia
-  inteira dentro do município, e o local vem de um endereço digitado e casado por nome. Um trecho sem acidente
-  pode ser só um endereço que não casou.
-- **Notificação do RENAEST varia** (queda em 2024): o modelo recebe o nível de notificação dos 180 dias
-  anteriores. Na API, vale o último nível conhecido.
-- **Histórico fixo na API:** para qualquer data escolhida, a API usa o histórico do trecho no fim da base. Por
-  isso a janela recente é de 12 meses, que muda pouco de um mês para outro.
-- As duas bases contam acidentes de formas diferentes: o RENAEST inclui muitos registros sem vítima. Por isso as
-  probabilidades das duas redes não são diretamente comparáveis entre si.
-- Não há opção de neblina: o histórico do Open-Meteo (ERA5) praticamente não registra neblina.
-- Nas BRs, todo trecho de 10 km com geometria teve algum acidente em 2017–2025. Os "trechos seguros" aparecem
-  como anos e dias sem acidente, não como trechos sem nenhum.
-- O km dos pontos do OSM é aproximado (interpolado entre acidentes). Feriados estaduais e municipais não entram.
-- Overpass, OSRM, Nominatim e Open-Meteo são serviços públicos gratuitos, com limite de uso. Para produção, use
-  instâncias próprias ou planos pagos.
+- Só acidentes **registrados**. A PRF cobre as BRs; o RENAEST depende do envio de cada Detran e varia no tempo
+  (queda em 2024). O modelo recebe o nível de notificação, mas não corrige tudo.
+- **Estaduais sem posição exata:** o trecho é a rodovia inteira dentro do município, e o local vem de um endereço
+  casado por nome. Um trecho sem acidente pode ser só um endereço que não casou.
+- As duas bases contam acidentes de formas diferentes (o RENAEST inclui muitos sem vítima): as probabilidades das
+  duas redes não são comparáveis entre si.
+- **Histórico fixo na API:** para qualquer data, usa-se o histórico do trecho no fim da base (por isso a janela
+  recente é de 12 meses).
+- VMD de uma única data e só para BRs; clima numa grade de ~25 km; sem neblina; sem feriados municipais.
+- Overpass, OSRM, Nominatim e Open-Meteo são serviços gratuitos com limite de uso.
 
-## Próximos passos
+## Trabalhos futuros
 
-- Criar um alvo de gravidade (acidente com vítima grave ou fatal).
-- Incluir a PRF de 2026 (já publicada no portal) e atualizar o VMD do DNIT quando sair nova versão.
-- Usar o km escrito no endereço do RENAEST (12% dos acidentes estaduais) para dividir as rodovias estaduais
-  longas em trechos menores.
+- Prever gravidade (acidente com vítima grave ou fatal).
+- Incluir a PRF de 2026 e atualizar o VMD do DNIT.
+- Usar o km escrito no endereço do RENAEST (12% dos acidentes estaduais) para dividir as rodovias estaduais longas.
+
+## Equipe e contribuições
+
+> Divisão sugerida — **o grupo deve ajustar** para refletir o que cada um fez.
+
+| Integrante | Contribuição |
+|---|---|
+| Gustavo Ross | Coleta e preparação dos dados (PRF, RENAEST, casamento de endereços, OSM, clima, DNIT) e pipeline |
+| Kevin C. El Azar | Modelagem e avaliação (features, divisão temporal, métricas, calibração, análise de erros, notebook final) |
+| Guilherme Assis | Interface web e demonstração (mapa, viagem, rankings, script de previsão) e apresentação |
