@@ -15,7 +15,9 @@ export function atualizarUrl(mudancas: Record<string, string | null | undefined>
   }
   const busca = params.toString();
   if (busca === window.location.search.replace(/^\?/, "")) return;
-  window.history.replaceState(window.history.state, "", busca ? `?${busca}` : window.location.pathname);
+  // estado null de propósito: o Next 15 só sincroniza o useSearchParams quando o state NÃO tem a marca interna
+  // dele (__NA); repassar window.history.state fazia a URL mudar sem a tela reagir até dar refresh
+  window.history.replaceState(null, "", busca ? `?${busca}` : window.location.pathname);
 }
 
 /** Estado guardado num parâmetro da URL (precisa de um <Suspense> acima, por causa do useSearchParams). */
