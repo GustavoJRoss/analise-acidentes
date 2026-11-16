@@ -19,12 +19,9 @@ import type { Lugar, PropsTrecho, Rota, TrechosGeoJSON } from "@/lib/tipos";
 const CENTRO_SC: [number, number] = [-27.25, -50.3];
 const LIMITES_SC = L.latLngBounds([-29.6, -54.0], [-25.8, -48.2]);
 
-// Mapa base da CARTO: tem versão clara e escura de verdade (antes o OSM era invertido por CSS)
-const TILES = {
-  claro: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  escuro: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-};
-const ATRIBUICAO = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// Mapa base do OpenStreetMap (sem chave de API); no tema escuro os tiles são invertidos por CSS (globals.css)
+const TILES_OSM = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATRIBUICAO = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 export type Enquadramento = { chave: number; limites: [[number, number], [number, number]] } | null;
 
@@ -282,8 +279,7 @@ export default function Mapa(props: Props) {
         className="h-full w-full"
         zoomControl={false}
       >
-        <TileLayer key={escuro ? "escuro" : "claro"} url={escuro ? TILES.escuro : TILES.claro} attribution={ATRIBUICAO}
-          subdomains="abcd" maxZoom={19} />
+        <TileLayer url={TILES_OSM} attribution={ATRIBUICAO} />
         <MascaraForaDeSC escuro={escuro} />
         <CliquesNoMapa onClicar={props.onClicarMapa} />
         <Enquadrar enquadrar={enquadrar} />

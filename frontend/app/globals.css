@@ -116,6 +116,10 @@ body {
 .leaflet-tooltip-bottom.tooltip-trecho::before { border-bottom-color: var(--superficie); }
 .leaflet-tooltip-left.tooltip-trecho::before { border-left-color: var(--superficie); }
 .leaflet-tooltip-right.tooltip-trecho::before { border-right-color: var(--superficie); }
+/* mapa base escuro: inverte os tiles claros do OSM (só os tiles; trechos, máscara e marcadores ficam como estão) */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+}
 .dark .leaflet-tooltip {
   background: var(--superficie);
   border-color: var(--borda);
