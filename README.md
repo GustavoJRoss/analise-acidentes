@@ -181,6 +181,30 @@ A evolução das métricas a cada tratamento está em `backend/artifacts/histori
 - Incluir a PRF de 2026 e atualizar o VMD do DNIT.
 - Usar o km escrito no endereço do RENAEST (12% dos acidentes estaduais) para dividir as rodovias estaduais longas.
 
+## Referências
+
+Fontes dos dados públicos usados no projeto (acesso em novembro de 2026).
+
+1. POLÍCIA RODOVIÁRIA FEDERAL (PRF). **Dados abertos da PRF: acidentes — agrupados por pessoa, todas as causas e
+   tipos de acidentes (2017 a 2025)**. Brasília: PRF. Disponível em:
+   <https://www.gov.br/prf/pt-br/acesso-a-informacao/dados-abertos/dados-abertos-da-prf>.
+2. SECRETARIA NACIONAL DE TRÂNSITO (SENATRAN). **RENAEST — Registro Nacional de Acidentes e Estatísticas de
+   Trânsito**. Portal de Dados Abertos do Ministério dos Transportes. Disponível em:
+   <https://dados.transportes.gov.br/dataset/renaest>.
+3. DEPARTAMENTO NACIONAL DE INFRAESTRUTURA DE TRANSPORTES (DNIT). **Fatores VMD e UPE por segmento das rodovias
+   federais**. Brasília: DNIT. Disponível em:
+   <https://www.gov.br/dnit/pt-br/rodovias/operacoes-rodoviarias/faixa-de-dominio>.
+4. INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA (IBGE). **API de malhas geográficas (v3)**: limites dos
+   municípios de Santa Catarina. Rio de Janeiro: IBGE. Disponível em: <https://servicodados.ibge.gov.br/api/docs/malhas>.
+5. OPENSTREETMAP CONTRIBUTORS. **OpenStreetMap**. Dados sob a licença Open Database License (ODbL). Disponível em:
+   <https://www.openstreetmap.org/copyright>. Consultados pela **Overpass API**: <https://overpass-api.de/>.
+6. ZIPPENFENIG, P. **Open-Meteo.com Weather API**. Zenodo, 2023. DOI: 10.5281/zenodo.7970649. Disponível em:
+   <https://open-meteo.com/>. Licença CC BY 4.0.
+7. HERSBACH, H. et al. The ERA5 global reanalysis. **Quarterly Journal of the Royal Meteorological Society**, v. 146,
+   n. 730, p. 1999–2049, 2020. DOI: 10.1002/qj.3803. (Reanálise usada pelo Open-Meteo para o clima histórico.)
+8. PROJECT OSRM. **Open Source Routing Machine**. Disponível em: <https://project-osrm.org/>.
+9. NOMINATIM. **Geocodificação com dados do OpenStreetMap**. Disponível em: <https://nominatim.org/>.
+
 ## Equipe e contribuições
 
 > Divisão sugerida — **o grupo deve ajustar** para refletir o que cada um fez.
