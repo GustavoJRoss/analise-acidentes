@@ -12,3 +12,4 @@ nbformat==5.11.1
 ipykernel==7.4.0
 pytest==9.1.1
 httpx==0.28.1     # importado por backend/app/clima.py (reaproveitado pelo pipeline)
+reportlab==4.4.4  # reports/gerar_relatorio.py (relatório N3 em PDF)

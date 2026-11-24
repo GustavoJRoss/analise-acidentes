@@ -70,11 +70,15 @@ jobs:
           print(f"- vigente: {m['vigente']['algoritmo']} do ciclo `{m['vigente']['cycle_id']}`")
           PY
 
+      - name: Atualizar o relatório (reports/relatorio_n3.pdf)
+        continue-on-error: true   # o relatório não pode impedir que o estado do ciclo seja salvo
+        run: python reports/gerar_relatorio.py
+
       - name: Persistir o estado do ciclo no repositório
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mlops models data/estado evidencias
+          git add mlops models data/estado evidencias reports
           git commit -m "ciclo ${CYCLE_ID} (${{ github.event_name }}) [skip ci]"
           for tentativa in 1 2 3; do
             git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
@@ -91,3 +95,4 @@ jobs:
             evidencias/${{ env.CYCLE_ID }}
             models/modelo_vigente.json
             mlops/mlflow.db
+            reports/relatorio_n3.pdf

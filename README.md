@@ -116,6 +116,7 @@ schedule → 01 lote novo + ETL + drift → 02 três métodos + votação → 03
 | Modelo vigente, manifesto com o histórico de decisões e modelos substituídos | `models/modelo_vigente.json`, `models/vigente/`, `models/historico/` |
 | Tracking MLflow (sqlite + artefatos) | `mlops/mlflow.db`, `mlops/mlartifacts/` |
 | Evidências por ciclo (notebooks executados, votação, comparação, decisão, drift) | `evidencias/<cycle_id>/` |
+| Relatório técnico em PDF, regenerado pelo workflow a cada ciclo com os números reais | `reports/relatorio_n3.pdf` (`reports/gerar_relatorio.py`) |
 
 **Ciclos.** Cada execução recebe um `cycle_id` e uma `data_version` (hash dos acidentes usados), compartilhados por
 todos os runs do MLflow. O 1º ciclo usa a base até dez/2023; cada ciclo seguinte incorpora o próximo mês de 2024
