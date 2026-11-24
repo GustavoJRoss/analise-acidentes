@@ -1,0 +1,9 @@
+{
+  "vencedor_ciclo": "hist_gradient_boosting",
+  "metrica": "pr_auc",
+  "valor_vencedor": 0.1274,
+  "falhas_qualidade": [],
+  "decisao": "promovido",
+  "valor_vigente": null,
+  "motivo": "primeiro ciclo: não há modelo vigente"
+}

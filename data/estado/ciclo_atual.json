@@ -1,0 +1,59 @@
+{
+  "cycle_id": "20261124-0010-45294862870",
+  "data_version": "vbase-3f4e3604",
+  "iniciado_em": "2026-11-24T00:10:47+00:00",
+  "lotes": [],
+  "lotes_novos": [],
+  "fim_dos_dados": "2023-12-31",
+  "linhas_brutas": 138776,
+  "linhas_brutas_novas": 0,
+  "duplicatas_removidas": 127516,
+  "primeiro_ciclo": true,
+  "gatilho": "workflow_dispatch",
+  "inicio_validacao": "2023-07-01",
+  "run_etl": "6815dfa858334214adb4640dfd580ebd",
+  "alerta_drift": false,
+  "features_eleitas": [
+    "taxa_historica_periodo",
+    "acid_ult_365d",
+    "lon",
+    "delegacia",
+    "br",
+    "trecho_km",
+    "taxa_historica",
+    "lat",
+    "vmd",
+    "chuva_mm"
+  ],
+  "run_votacao": "50e47e55524c41e3ba9f1c8c927230b7",
+  "candidatos": {
+    "logistica": {
+      "modelo": "A",
+      "algoritmo": "logistica",
+      "run_id": "3e743a4f4631469694a380d7a338b48b",
+      "metricas": {
+        "roc_auc": 0.7956,
+        "pr_auc": 0.1196,
+        "brier": 0.01874,
+        "razao_prevista_observada": 0.994,
+        "captura_top_10pct": 0.4705,
+        "captura_top_5pct": 0.3391
+      }
+    },
+    "hist_gradient_boosting": {
+      "modelo": "B",
+      "algoritmo": "hist_gradient_boosting",
+      "run_id": "f40005f854d44e9d9ca54deffbc78aa1",
+      "metricas": {
+        "roc_auc": 0.8142,
+        "pr_auc": 0.1274,
+        "brier": 0.01858,
+        "razao_prevista_observada": 0.976,
+        "captura_top_10pct": 0.4905,
+        "captura_top_5pct": 0.3545
+      }
+    }
+  },
+  "decisao": "promovido",
+  "run_decisao": "cbdf4ed49b124956a8ee5f593eac119d"
+}
