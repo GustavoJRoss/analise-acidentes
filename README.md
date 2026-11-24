@@ -260,15 +260,11 @@ Fontes dos dados públicos usados no projeto (acesso em novembro de 2026).
 8. PROJECT OSRM. **Open Source Routing Machine**. Disponível em: <https://project-osrm.org/>.
 9. NOMINATIM. **Geocodificação com dados do OpenStreetMap**. Disponível em: <https://nominatim.org/>.
 
-## Equipe e contribuições
+## Equipe
 
-> Divisão sugerida — **o grupo deve ajustar** para refletir o que cada um fez.
-
-| Integrante | Contribuição |
-|---|---|
-| Gustavo Ross | Coleta e preparação dos dados (PRF, RENAEST, casamento de endereços, OSM, clima, DNIT) e pipeline |
-| Kevin C. El Azar | Modelagem e avaliação (features, divisão temporal, métricas, calibração, análise de erros, notebook final) |
-| Guilherme Assis | Interface web e demonstração (mapa, viagem, rankings, script de previsão) e apresentação |
-| Bredley Bauer | *a definir pelo grupo* |
-| Gabriel Coelho | *a definir pelo grupo* |
-| Gustavo Haiduk | *a definir pelo grupo* |
+- Gustavo Ross
+- Kevin C. El Azar
+- Guilherme Assis
+- Bredley Bauer
+- Gabriel Coelho
+- Gustavo Haiduk
