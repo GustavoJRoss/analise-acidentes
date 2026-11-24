@@ -1,0 +1,139 @@
+{
+  "vigente": {
+    "cycle_id": "20261124-0010-45294862870",
+    "data_version": "vbase-3f4e3604",
+    "algoritmo": "hist_gradient_boosting",
+    "run_id": "f40005f854d44e9d9ca54deffbc78aa1",
+    "features": [
+      "taxa_historica_periodo",
+      "acid_ult_365d",
+      "lon",
+      "delegacia",
+      "br",
+      "trecho_km",
+      "taxa_historica",
+      "lat",
+      "vmd",
+      "chuva_mm"
+    ],
+    "metrica": "pr_auc",
+    "valor_validacao": 0.1274,
+    "fim_dos_dados": "2023-12-31",
+    "arquivo": "vigente/modelo.joblib",
+    "promovido_em": "2026-11-24T00:11:54+00:00"
+  },
+  "historico": [
+    {
+      "cycle_id": "20261124-0010-45294862870",
+      "data_version": "vbase-3f4e3604",
+      "gatilho": "workflow_dispatch",
+      "lotes_novos": [],
+      "features_eleitas": [
+        "taxa_historica_periodo",
+        "acid_ult_365d",
+        "lon",
+        "delegacia",
+        "br",
+        "trecho_km",
+        "taxa_historica",
+        "lat",
+        "vmd",
+        "chuva_mm"
+      ],
+      "candidatos": {
+        "logistica": {
+          "modelo": "A",
+          "algoritmo": "logistica",
+          "run_id": "3e743a4f4631469694a380d7a338b48b",
+          "metricas": {
+            "roc_auc": 0.7956,
+            "pr_auc": 0.1196,
+            "brier": 0.01874,
+            "razao_prevista_observada": 0.994,
+            "captura_top_10pct": 0.4705,
+            "captura_top_5pct": 0.3391
+          }
+        },
+        "hist_gradient_boosting": {
+          "modelo": "B",
+          "algoritmo": "hist_gradient_boosting",
+          "run_id": "f40005f854d44e9d9ca54deffbc78aa1",
+          "metricas": {
+            "roc_auc": 0.8142,
+            "pr_auc": 0.1274,
+            "brier": 0.01858,
+            "razao_prevista_observada": 0.976,
+            "captura_top_10pct": 0.4905,
+            "captura_top_5pct": 0.3545
+          }
+        }
+      },
+      "vencedor_ciclo": "hist_gradient_boosting",
+      "metrica": "pr_auc",
+      "valor_vencedor": 0.1274,
+      "falhas_qualidade": [],
+      "decisao": "promovido",
+      "valor_vigente": null,
+      "motivo": "primeiro ciclo: não há modelo vigente",
+      "vigente_apos": "20261124-0010-45294862870"
+    },
+    {
+      "cycle_id": "20261124-2008-45477532512",
+      "data_version": "v2024-01-a37b9b7d",
+      "gatilho": "schedule",
+      "lotes_novos": [
+        "2024-01"
+      ],
+      "features_eleitas": [
+        "taxa_historica_periodo",
+        "acid_ult_365d",
+        "lon",
+        "delegacia",
+        "br",
+        "taxa_historica",
+        "periodo_idx",
+        "lat",
+        "vmd",
+        "nebulosidade"
+      ],
+      "candidatos": {
+        "logistica": {
+          "modelo": "A",
+          "algoritmo": "logistica",
+          "run_id": "8a7b8ef719d8475b9a3f43ac9cb46cc5",
+          "metricas": {
+            "roc_auc": 0.801,
+            "pr_auc": 0.1264,
+            "brier": 0.0187,
+            "razao_prevista_observada": 0.992,
+            "captura_top_10pct": 0.4763,
+            "captura_top_5pct": 0.3517
+          }
+        },
+        "hist_gradient_boosting": {
+          "modelo": "B",
+          "algoritmo": "hist_gradient_boosting",
+          "run_id": "7c4c1711775a41fab2e28747cfb0ca1e",
+          "metricas": {
+            "roc_auc": 0.8199,
+            "pr_auc": 0.1334,
+            "brier": 0.01856,
+            "razao_prevista_observada": 0.971,
+            "captura_top_10pct": 0.5003,
+            "captura_top_5pct": 0.3652
+          }
+        }
+      },
+      "vencedor_ciclo": "hist_gradient_boosting",
+      "metrica": "pr_auc",
+      "valor_vencedor": 0.1334,
+      "falhas_qualidade": [],
+      "valor_vigente": 0.1325,
+      "melhoria": 0.0009,
+      "decisao": "mantido",
+      "motivo": "pr_auc 0.1334 vs vigente 0.1325: melhoria 0.0009 < limiar 0.002",
+      "vigente_apos": "20261124-0010-45294862870"
+    }
+  ],
+  "ultimo_ciclo": "20261124-2008-45477532512"
+}

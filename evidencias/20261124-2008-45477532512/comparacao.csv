@@ -1,0 +1,3 @@
+,roc_auc,pr_auc,brier,razao_prevista_observada,captura_top_10pct,captura_top_5pct
+logistica,0.801,0.1264,0.0187,0.992,0.4763,0.3517
+hist_gradient_boosting,0.8199,0.1334,0.01856,0.971,0.5003,0.3652

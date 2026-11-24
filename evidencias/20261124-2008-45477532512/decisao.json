@@ -1,0 +1,10 @@
+{
+  "vencedor_ciclo": "hist_gradient_boosting",
+  "metrica": "pr_auc",
+  "valor_vencedor": 0.1334,
+  "falhas_qualidade": [],
+  "valor_vigente": 0.1325,
+  "melhoria": 0.0009,
+  "decisao": "mantido",
+  "motivo": "pr_auc 0.1334 vs vigente 0.1325: melhoria 0.0009 < limiar 0.002"
+}

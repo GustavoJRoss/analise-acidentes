@@ -1,0 +1,51 @@
+{
+  "bruto": {
+    "linhas (pessoas)": 140587,
+    "acidentes distintos": 58786,
+    "pessoas por acidente (média)": 2.39,
+    "linhas repetidas (id + pesid)": 0,
+    "acidentes sem br/km/coordenada": 74,
+    "acidentes com coordenada fora de SC": 10,
+    "datas em formato inválido": 0,
+    "horário ausente": 0,
+    "tipo de acidente ausente": 8
+  },
+  "apos_limpeza_prf": {
+    "linhas": 58702,
+    "ausentes": {
+      "tipo_acidente": 4,
+      "classificacao_acidente": 1,
+      "delegacia": 3
+    },
+    "ids_duplicados": 0,
+    "coordenada_fora_de_sc": 0,
+    "km_negativo": 0,
+    "trecho_desconhecido": 0,
+    "periodo_invalido": 0,
+    "vitimas_negativas": 0,
+    "outlier_mortos_gt_10": 0,
+    "periodo_dados": [
+      "2017-01-01",
+      "2024-01-31"
+    ]
+  },
+  "apos_tratamento": {
+    "linhas": 58702,
+    "ausentes": {
+      "tipo_acidente": 4,
+      "classificacao_acidente": 1,
+      "delegacia": 3
+    },
+    "ids_duplicados": 0,
+    "coordenada_fora_de_sc": 0,
+    "km_negativo": 0,
+    "trecho_desconhecido": 0,
+    "periodo_invalido": 0,
+    "vitimas_negativas": 0,
+    "outlier_mortos_gt_10": 0,
+    "periodo_dados": [
+      "2017-01-01",
+      "2024-01-31"
+    ]
+  }
+}
