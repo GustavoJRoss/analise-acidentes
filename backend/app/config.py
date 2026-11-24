@@ -114,8 +114,8 @@ def _feriados(anos) -> pd.DatetimeIndex:
     return pd.DatetimeIndex(sorted(datas))
 
 
-# do início do RENAEST até datas que o usuário pode escolher
-FERIADOS = _feriados(range(2019, 2028))
+# do início da PRF (2017) até datas que o usuário pode escolher
+FERIADOS = _feriados(range(2017, 2028))
 
 # Categorias de clima mostradas na UI. Não há "neblina": o histórico do Open-Meteo (ERA5)
 # praticamente não registra códigos de neblina, então o modelo não teria como aprender o efeito.

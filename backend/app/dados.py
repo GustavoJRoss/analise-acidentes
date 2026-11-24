@@ -71,7 +71,15 @@ def _data(serie: pd.Series) -> pd.Series:
 def carregar_acidentes(arquivos=None) -> pd.DataFrame:
     """arquivos: lista de CSV/ZIP da PRF; por padrão, os de config.ANOS_PRF (baixados se faltarem)."""
     arquivos = arquivos if arquivos is not None else [arquivo_prf(a) for a in config.ANOS_PRF]
-    pessoas = pd.concat([_pessoas_sc(Path(a)) for a in arquivos], ignore_index=True)
+    return limpar_pessoas(pd.concat([_pessoas_sc(Path(a)) for a in arquivos], ignore_index=True))
+
+
+def limpar_pessoas(pessoas: pd.DataFrame) -> pd.DataFrame:
+    """Linhas brutas da PRF (uma por pessoa, colunas como texto) → uma linha por acidente, validada.
+
+    Também usada pelo pipeline MLOps (src/), que recebe os lotes brutos e refaz esta limpeza a cada ciclo.
+    """
+    pessoas = pessoas.copy()
     for col in ["id", "pesid", "br", "ordem_tipo_acidente", "ilesos", "feridos_leves", "feridos_graves", "mortos"]:
         pessoas[col] = _numero(pessoas[col])
     for col in ["km", "latitude", "longitude"]:
@@ -81,7 +89,7 @@ def carregar_acidentes(arquivos=None) -> pd.DataFrame:
                .groupby("id")[["ilesos", "feridos_leves", "feridos_graves", "mortos"]].sum())
 
     # ordem_tipo_acidente == 1 é o tipo principal do acidente
-    acidentes = (pessoas.sort_values(["id", "ordem_tipo_acidente"])
+    acidentes = (pessoas.sort_values(["id", "ordem_tipo_acidente"], kind="stable")  # determinístico em empates
                  .drop_duplicates("id")
                  .drop(columns=["pesid", "ilesos", "feridos_leves", "feridos_graves", "mortos", "uf"])
                  .merge(vitimas, on="id")

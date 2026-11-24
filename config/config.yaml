@@ -1,0 +1,56 @@
+# Configuração do pipeline MLOps (Trabalho N3). Tudo que decide um ciclo está aqui e foi fixado ANTES de rodar.
+projeto:
+  experimento_mlflow: acidentes-br-n3
+  rede: br                      # rodovias federais (PRF), trechos de 10 km
+
+dados:
+  base_inicial: data/raw/base_inicial.parquet     # acidentes 2017 → dez/2023
+  lotes: data/raw/lotes                           # um arquivo por mês de 2024, consumido um por ciclo
+  teste_reservado: data/raw/teste_reservado.parquet  # 2025: só para avaliação final, nunca em decisão
+  trechos: data/raw/trechos.parquet
+  clima: data/raw/clima.parquet
+  inicio_lotes: "2024-01"
+  inicio_teste: "2025-01-01"
+  lotes_por_ciclo: 1
+
+avaliacao:
+  tipo: classificacao
+  alvo: teve_acidente             # houve ao menos um acidente no trecho × dia × período
+  metrica: pr_auc                 # average precision: 2% de positivos, acurácia não serve
+  direcao: maximize
+  validacao_meses: 6              # treino < D − 6 meses; validação = 6 meses finais dos dados do ciclo
+
+votacao:
+  metodos: [selectkbest_mi, random_forest, rfe_logistica]
+  k: 10                           # cada método vota nas suas 10 melhores features
+  min_votos: 2                    # eleita se votada por ≥ 2 dos 3 métodos
+  min_features: 6                 # se sobrarem menos, completa pela média dos rankings
+  desempate: media_ranking
+  amostra: 200000                 # linhas do treino (estratificadas) usadas na seleção
+  seed: 42
+
+modelos:
+  A: logistica
+  B: hist_gradient_boosting
+  seed: 42
+
+promocao:
+  limiar_melhoria: 0.002          # desafiante precisa superar o vigente em ≥ 0,002 de PR-AUC
+  roc_auc_min: 0.75
+  calibracao_min: 0.8             # razão prevista/observada na validação
+  calibracao_max: 1.25
+
+drift:
+  psi_alerta: 0.2               # PSI > 0,2 = mudança relevante na distribuição
+  razao_taxa_min: 0.75          # taxa de acidentes do mês ÷ a do mesmo mês nos 3 anos anteriores
+  razao_taxa_max: 1.33
+  # clima mensal e calendário (feriados móveis, dias da semana) variam entre anos por natureza: só reportados
+  ignorar_no_alerta: [chuva_mm, nebulosidade, temperatura, feriado, vespera_ou_pos_feriado, dia_semana, fim_de_semana]
+
+caminhos:
+  estado: data/estado
+  processados: data/processed/ciclo_atual
+  modelos: models
+  mlflow_db: mlops/mlflow.db
+  mlflow_artefatos: mlops/mlartifacts
+  evidencias: evidencias

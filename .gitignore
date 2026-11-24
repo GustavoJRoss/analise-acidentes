@@ -25,3 +25,11 @@ dados_externos/
 
 # Pacote de artefatos para a GitHub Release
 dist/
+
+# Pipeline MLOps (N3): dados intermediários do ciclo e execuções locais de teste (bash mlops.sh)
+data/processed/
+.mlops-local/
+mlruns/
+# o *.csv acima é para a base bruta da PRF; as evidências e artefatos do pipeline são versionados
+!evidencias/**/*.csv
+!mlops/mlartifacts/**/*.csv

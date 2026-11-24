@@ -1,0 +1,93 @@
+# Pipeline MLOps único (Trabalho N3): um ciclo completo por execução, em sequência.
+# ingestão do próximo lote → ETL + drift → votação de features → modelos A e B → promoção → previsões
+# O estado (MLflow, modelo vigente, lotes consumidos, evidências) é commitado de volta no repositório, porque o
+# runner é descartável: o ciclo seguinte começa do vigente e do histórico deixados pelo anterior.
+name: pipeline-mlops
+
+on:
+  schedule:
+    - cron: "17 9 * * *"   # todo dia, 06:17 em Brasília (minuto "quebrado": o GitHub atrasa crons em :00)
+  workflow_dispatch:        # para depuração; a avaliação usa as execuções do schedule
+
+permissions:
+  contents: write           # commitar o estado do ciclo
+  issues: write             # alerta do monitor de drift
+
+concurrency:
+  group: pipeline-mlops     # dois ciclos nunca rodam ao mesmo tempo
+  cancel-in-progress: false
+
+jobs:
+  ciclo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      MLOPS_SAIDA: ""                     # grava na raiz do repositório (não em .mlops-local/)
+      PYTHON: python
+      GH_TOKEN: ${{ github.token }}
+      MLFLOW_DISABLE_AGENT_HINT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-mlops.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements-mlops.txt
+
+      - name: Identificar o ciclo
+        run: echo "CYCLE_ID=$(date -u +%Y%m%d-%H%M)-${{ github.run_id }}" >> "$GITHUB_ENV"
+
+      - name: Testes das regras (votação, promoção, ingestão, drift)
+        run: python -m pytest tests -q
+
+      # um passo por notebook: se qualquer um falhar, o job para e não há promoção nem commit do estado
+      - name: 01 · Entrada de dados, ETL e drift
+        run: bash mlops.sh 01_etl
+      - name: 02 · Três métodos e votação de features
+        run: bash mlops.sh 02_votacao_features
+      - name: 03 · Treino e competição (A × B)
+        run: bash mlops.sh 03_treino_competicao
+      - name: 04 · Eleição e promoção
+        run: bash mlops.sh 04_selecao_promocao
+      - name: 05 · Previsões com o vigente
+        run: bash mlops.sh 05_previsoes
+
+      - name: Resumo do ciclo
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          m = json.load(open("models/modelo_vigente.json")); h = m["historico"][-1]
+          print(f"## Ciclo `{h['cycle_id']}` ({h['gatilho']})\n")
+          print(f"- data_version: `{h['data_version']}` · lotes novos: {h['lotes_novos'] or 'nenhum'}")
+          print(f"- features eleitas: {', '.join(h['features_eleitas'])}")
+          for nome, c in h["candidatos"].items():
+              print(f"- {c['modelo']} · {nome}: PR-AUC {c['metricas']['pr_auc']}")
+          print(f"- **decisão: {h['decisao']}** — {h['motivo']}")
+          print(f"- vigente: {m['vigente']['algoritmo']} do ciclo `{m['vigente']['cycle_id']}`")
+          PY
+
+      - name: Persistir o estado do ciclo no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mlops models data/estado evidencias
+          git commit -m "ciclo ${CYCLE_ID} (${{ github.event_name }}) [skip ci]"
+          for tentativa in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Publicar evidências do ciclo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ciclo-${{ env.CYCLE_ID }}
+          path: |
+            evidencias/${{ env.CYCLE_ID }}
+            models/modelo_vigente.json
+            mlops/mlflow.db

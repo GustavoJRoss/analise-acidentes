@@ -34,7 +34,9 @@ projeto_final.ipynb       notebook final: problema → dados → tratamentos →
 notebooks/estudos/        estudos intermediários (primeiro modelo; exploração, correlação e PCA com a PRF 2025)
 backend/                  Python: preparação dos dados, treino, API (FastAPI) e script de demonstração
 frontend/                 Next.js + Leaflet/OpenStreetMap: interface web
-docs/                     capturas de tela e roteiro da apresentação
+docs/                     capturas de tela, roteiro da apresentação e plano da N3
+config/ src/ notebooks/   pipeline MLOps da N3 (ver "Pipeline MLOps"); .github/workflows/pipeline_mlops.yml o agenda
+data/raw/                 entrada do pipeline MLOps: linhas brutas da PRF (SC) em base 2017–2023, lotes mensais de 2024 e teste 2025
 dados_externos/           bases baixadas pelos scripts (fora do git)
 ```
 
@@ -94,6 +96,58 @@ cd backend
 ```
 
 `python -m scripts.empacotar_artefatos` gera o `dist/artefatos.zip` publicado na Release.
+
+## Pipeline MLOps (Trabalho N3)
+
+Um único workflow agendado (`.github/workflows/pipeline_mlops.yml`, todo dia às 06:17 de Brasília) executa um
+ciclo completo para a rede **BR**, em sequência:
+
+```
+schedule → 01 lote novo + ETL + drift → 02 três métodos + votação → 03 modelo A × modelo B
+         → 04 eleição + promoção controlada → 05 previsões com o vigente → MLflow + estado commitado no repositório
+```
+
+| Peça | Onde |
+|---|---|
+| Regras fixadas antes dos ciclos (métrica, validação, votação, limiar de promoção, drift) | `config/config.yaml` |
+| Notebooks do ciclo (documentam e chamam `src/`) | `notebooks/01_etl.ipynb` … `05_previsoes.ipynb` |
+| Código reutilizável (reaproveita `backend/app` e `backend/scripts/treinar.py`) | `src/ingestao.py`, `preprocessamento.py`, `features.py`, `modelagem.py`, `promocao.py`, `drift.py` |
+| Dados de entrada: linhas brutas da PRF (SC), base 2017–2023, um lote por mês de 2024, 2025 reservado para o teste final (gerados uma vez por `src.ingestao.preparar_raw`) | `data/raw/` |
+| Modelo vigente, manifesto com o histórico de decisões e modelos substituídos | `models/modelo_vigente.json`, `models/vigente/`, `models/historico/` |
+| Tracking MLflow (sqlite + artefatos) | `mlops/mlflow.db`, `mlops/mlartifacts/` |
+| Evidências por ciclo (notebooks executados, votação, comparação, decisão, drift) | `evidencias/<cycle_id>/` |
+
+**Ciclos.** Cada execução recebe um `cycle_id` e uma `data_version` (hash dos acidentes usados), compartilhados por
+todos os runs do MLflow. O 1º ciclo usa a base até dez/2023; cada ciclo seguinte incorpora o próximo mês de 2024
+(replay cronológico: a PRF publica com atraso, então a chegada de dados é simulada com dados reais, na ordem em que
+aconteceram).
+
+**Avaliação.** Métrica principal PR-AUC. Treino = tudo antes dos 6 meses finais do ciclo; validação = esses 6
+meses; 2025 só é usado no notebook 05. A seleção de features usa só o treino.
+
+**Votação.** SelectKBest (informação mútua), importância de Random Forest e RFE com Regressão Logística; cada um vota
+nas suas 10 melhores; eleita com ≥ 2 votos (mínimo de 6, completando pela média de ranking).
+
+**Competição e promoção.** Regressão Logística × HistGradientBoosting, com as mesmas features e a mesma partição.
+O vencedor só substitui o vigente se superar o vigente em ≥ 0,002 de PR-AUC **na mesma validação** e passar nas
+checagens (ROC-AUC ≥ 0,75, calibração entre 0,8 e 1,25). Senão, o vigente é mantido.
+
+**Recurso adicional (critério 10): monitor de drift com alerta.** Compara o mês mais recente com o mesmo mês dos 3
+anos anteriores (PSI por feature e taxa de acidentes). Fora dos limites, escreve no resumo da execução e abre uma
+issue no GitHub. O notebook 05 mostra que ele dispara em abr/2020 (pandemia) e não em abr/2024.
+
+### Rodar localmente
+
+```bash
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-mlops.txt
+bash mlops.sh             # um ciclo completo; repita para o próximo lote (estado em .mlops-local/)
+bash mlops.sh --ui        # MLflow em http://localhost:5000
+bash mlops.sh --limpar    # recomeça do 1º ciclo
+.venv/bin/python3.12 -m pytest tests -q   # regras de votação, promoção, ingestão e drift
+```
+
+Execuções locais ficam em `.mlops-local/` e não se misturam com o histórico do workflow. Para ver o histórico do
+workflow agendado: `git pull` e `MLOPS_SAIDA= bash mlops.sh --ui`.
 
 ## Metodologia
 
