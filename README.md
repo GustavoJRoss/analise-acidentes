@@ -1,6 +1,6 @@
 # Risco de acidentes nas rodovias de Santa Catarina
 
-**Projeto final de Aprendizagem de Máquina** · Gustavo Ross · Kevin C. El Azar · Guilherme Assis
+**Projeto final de Aprendizagem de Máquina** · Gustavo Ross · Kevin C. El Azar · Guilherme Assis · Bredley Bauer · Gabriel Coelho · Gustavo Haiduk
 
 Dois modelos de classificação estimam a **chance de acontecer ao menos um acidente** num trecho de rodovia de SC,
 num dia e num período do dia (madrugada, manhã, tarde, noite), a partir de dados abertos de acidentes, clima,
@@ -269,3 +269,6 @@ Fontes dos dados públicos usados no projeto (acesso em novembro de 2026).
 | Gustavo Ross | Coleta e preparação dos dados (PRF, RENAEST, casamento de endereços, OSM, clima, DNIT) e pipeline |
 | Kevin C. El Azar | Modelagem e avaliação (features, divisão temporal, métricas, calibração, análise de erros, notebook final) |
 | Guilherme Assis | Interface web e demonstração (mapa, viagem, rankings, script de previsão) e apresentação |
+| Bredley Bauer | *a definir pelo grupo* |
+| Gabriel Coelho | *a definir pelo grupo* |
+| Gustavo Haiduk | *a definir pelo grupo* |
