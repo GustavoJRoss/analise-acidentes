@@ -3,22 +3,22 @@
 Duração sugerida: **15 min** (11 min de slides + 3 min de demonstração + 1 min de fechamento), e depois perguntas.
 Os gráficos de apoio saem do `projeto_final.ipynb` (seção indicada em cada slide).
 
-> A divisão por integrante abaixo segue a tabela de contribuições do README. **O grupo deve ajustar.**
+**Equipe:** Gustavo Ross · Kevin C. El Azar · Guilherme Assis · Bredley Bauer · Gabriel Coelho · Gustavo Haiduk
 
-| # | Slide | Mensagem principal | Apoio | Quem fala |
-|---|---|---|---|---|
-| 1 | Título | Qual a chance de acidente neste trecho, dia e período? | captura `docs/img/previsao.png` | Gustavo |
-| 2 | Problema e público | Acidentes se concentram em poucos trechos e horários; motoristas, PRF/DER e Defesa Civil precisam saber *onde e quando* | tabela de público (notebook §1) | Gustavo |
-| 3 | Dados | 6 fontes públicas; 74,6 mil acidentes da PRF (2017–2025) e 148 mil do RENAEST casados a rodovias estaduais (2019–mai/2026) | gráfico de acidentes por ano (§2) | Gustavo |
-| 4 | O desafio do RENAEST | Em SC não há coordenadas nem km, só o endereço digitado → limpeza + casamento com o OpenStreetMap (~90%); regra da maioria para uma rua não virar rodovia | exemplo "ROD JOSE CARLOS DAUX" → SC-401 (§4) | Gustavo |
-| 5 | Exploração | 10% dos trechos concentram 49% (BRs) e 65% (estaduais) dos acidentes; o alvo é raro (2–3%) → acurácia não serve | curva de concentração (§3) | Kevin |
-| 6 | Tratamentos | Histórico sem vazamento (só até o dia anterior), trechos sem acidente, clima de todos os dias, nível de notificação do RENAEST | tabela de tratamentos (§4) | Kevin |
-| 7 | Modelo | HistGradientBoosting por rede; trecho × dia × período; divisão **temporal** (testa no último ano); comparado com o histórico puro e a logística/PCA | §5 | Kevin |
-| 8 | Resultados | ROC-AUC 0,83 (BRs) e 0,90 (estaduais); os 10% de maior risco concentram 51% e 66% dos acidentes; probabilidades calibradas | tabela + curva de calibração (§6) | Kevin |
-| 9 | A conclusão honesta | O modelo supera por pouco o histórico do trecho: o risco é sobretudo *onde*. O modelo acrescenta o *quando*. Clima e tráfego quase não ajudam | ROC/PR com a linha de base; clima por subconjunto (§6) | Kevin |
-| 10 | Erros e limitações | Erra nos trechos movimentados que mudam de patamar (BR-280 Araquari, SC-412 Itajaí) e na madrugada; notificação e casamento no RENAEST | §7 e §9 | Guilherme |
-| 11 | Demonstração | (ao vivo, ver abaixo) | — | Guilherme |
-| 12 | Conclusões e futuro | Serve para comparar e priorizar, não para garantir segurança; próximos passos: gravidade, PRF 2026, km nas estaduais | §8 e §9 | Guilherme |
+| # | Slide | Mensagem principal | Apoio |
+|---|---|---|---|
+| 1 | Título | Qual a chance de acidente neste trecho, dia e período? | captura `docs/img/previsao.png` |
+| 2 | Problema e público | Acidentes se concentram em poucos trechos e horários; motoristas, PRF/DER e Defesa Civil precisam saber *onde e quando* | tabela de público (notebook §1) |
+| 3 | Dados | 6 fontes públicas; 74,6 mil acidentes da PRF (2017–2025) e 148 mil do RENAEST casados a rodovias estaduais (2019–mai/2026) | gráfico de acidentes por ano (§2) |
+| 4 | O desafio do RENAEST | Em SC não há coordenadas nem km, só o endereço digitado → limpeza + casamento com o OpenStreetMap (~90%); regra da maioria para uma rua não virar rodovia | exemplo "ROD JOSE CARLOS DAUX" → SC-401 (§4) |
+| 5 | Exploração | 10% dos trechos concentram 49% (BRs) e 65% (estaduais) dos acidentes; o alvo é raro (2–3%) → acurácia não serve | curva de concentração (§3) |
+| 6 | Tratamentos | Histórico sem vazamento (só até o dia anterior), trechos sem acidente, clima de todos os dias, nível de notificação do RENAEST | tabela de tratamentos (§4) |
+| 7 | Modelo | HistGradientBoosting por rede; trecho × dia × período; divisão **temporal** (testa no último ano); comparado com o histórico puro e a logística/PCA | §5 |
+| 8 | Resultados | ROC-AUC 0,83 (BRs) e 0,90 (estaduais); os 10% de maior risco concentram 51% e 66% dos acidentes; probabilidades calibradas | tabela + curva de calibração (§6) |
+| 9 | A conclusão honesta | O modelo supera por pouco o histórico do trecho: o risco é sobretudo *onde*. O modelo acrescenta o *quando*. Clima e tráfego quase não ajudam | ROC/PR com a linha de base; clima por subconjunto (§6) |
+| 10 | Erros e limitações | Erra nos trechos movimentados que mudam de patamar (BR-280 Araquari, SC-412 Itajaí) e na madrugada; notificação e casamento no RENAEST | §7 e §9 |
+| 11 | Demonstração | (ao vivo, ver abaixo) | — |
+| 12 | Conclusões e futuro | Serve para comparar e priorizar, não para garantir segurança; próximos passos: gravidade, PRF 2026, km nas estaduais | §8 e §9 |
 
 ## Roteiro da demonstração (3 min)
 

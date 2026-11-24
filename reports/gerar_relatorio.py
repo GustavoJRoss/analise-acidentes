@@ -27,7 +27,8 @@ from reportlab.platypus import (KeepTogether, PageBreak, Paragraph, SimpleDocTem
 from src.comum import caminho, carregar_config, estado  # noqa: E402
 
 REPO_URL = "https://github.com/GustavoJRoss/analise-acidentes"
-INTEGRANTES = ["Gustavo Ross", "Kevin C. El Azar", "Guilherme Assis"]
+INTEGRANTES = ["Gustavo Ross", "Kevin C. El Azar", "Guilherme Assis", "Bredley Bauer", "Gabriel Coelho",
+               "Gustavo Haiduk"]
 SAIDA = RAIZ / "reports" / "relatorio_n3.pdf"
 
 # --- fontes: TTF com acentos e símbolos (≥, →, ×); sem elas, Helvetica e troca dos símbolos -------------------
