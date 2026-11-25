@@ -1,26 +1,27 @@
 {
   "vigente": {
-    "cycle_id": "20261124-0010-45294862870",
-    "data_version": "vbase-3f4e3604",
+    "cycle_id": "20261125-1914-45683118417",
+    "data_version": "v2024-02-a4669ce4",
     "algoritmo": "hist_gradient_boosting",
-    "run_id": "f40005f854d44e9d9ca54deffbc78aa1",
+    "run_id": "06c09688beea44c398577732832b0306",
     "features": [
       "taxa_historica_periodo",
-      "acid_ult_365d",
-      "lon",
+      "taxa_historica",
       "delegacia",
       "br",
-      "trecho_km",
-      "taxa_historica",
+      "acid_ult_365d",
+      "lon",
       "lat",
       "vmd",
-      "chuva_mm"
+      "temperatura",
+      "trecho_km",
+      "nebulosidade"
     ],
     "metrica": "pr_auc",
-    "valor_validacao": 0.1274,
-    "fim_dos_dados": "2023-12-31",
+    "valor_validacao": 0.1374,
+    "fim_dos_dados": "2024-02-29",
     "arquivo": "vigente/modelo.joblib",
-    "promovido_em": "2026-11-24T00:11:54+00:00"
+    "promovido_em": "2026-11-25T19:16:20+00:00"
   },
   "historico": [
     {
@@ -133,7 +134,65 @@
       "decisao": "mantido",
       "motivo": "pr_auc 0.1334 vs vigente 0.1325: melhoria 0.0009 < limiar 0.002",
       "vigente_apos": "20261124-0010-45294862870"
+    },
+    {
+      "cycle_id": "20261125-1914-45683118417",
+      "data_version": "v2024-02-a4669ce4",
+      "gatilho": "schedule",
+      "lotes_novos": [
+        "2024-02"
+      ],
+      "features_eleitas": [
+        "taxa_historica_periodo",
+        "taxa_historica",
+        "delegacia",
+        "br",
+        "acid_ult_365d",
+        "lon",
+        "lat",
+        "vmd",
+        "temperatura",
+        "trecho_km",
+        "nebulosidade"
+      ],
+      "candidatos": {
+        "logistica": {
+          "modelo": "A",
+          "algoritmo": "logistica",
+          "run_id": "05aea05d1e5f46f6987189ff42cef174",
+          "metricas": {
+            "roc_auc": 0.7975,
+            "pr_auc": 0.1313,
+            "brier": 0.01927,
+            "razao_prevista_observada": 0.997,
+            "captura_top_10pct": 0.479,
+            "captura_top_5pct": 0.3487
+          }
+        },
+        "hist_gradient_boosting": {
+          "modelo": "B",
+          "algoritmo": "hist_gradient_boosting",
+          "run_id": "06c09688beea44c398577732832b0306",
+          "metricas": {
+            "roc_auc": 0.8185,
+            "pr_auc": 0.1374,
+            "brier": 0.01911,
+            "razao_prevista_observada": 0.961,
+            "captura_top_10pct": 0.5015,
+            "captura_top_5pct": 0.3593
+          }
+        }
+      },
+      "vencedor_ciclo": "hist_gradient_boosting",
+      "metrica": "pr_auc",
+      "valor_vencedor": 0.1374,
+      "falhas_qualidade": [],
+      "valor_vigente": 0.1349,
+      "melhoria": 0.0025,
+      "decisao": "promovido",
+      "motivo": "pr_auc 0.1374 supera o vigente (0.1349) em 0.0025 ≥ 0.002",
+      "vigente_apos": "20261125-1914-45683118417"
     }
   ],
-  "ultimo_ciclo": "20261124-2008-45477532512"
+  "ultimo_ciclo": "20261125-1914-45683118417"
 }
