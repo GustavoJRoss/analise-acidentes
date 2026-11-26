@@ -1,0 +1,29 @@
+{
+  "psi": {
+    "vespera_ou_pos_feriado": 0.0993,
+    "chuva_mm": 0.0909,
+    "temperatura": 0.0369,
+    "dia_semana": 0.0322,
+    "feriado": 0.0241,
+    "fim_de_semana": 0.0203,
+    "nebulosidade": 0.0141,
+    "taxa_historica": 0.0127,
+    "acid_ult_365d": 0.0083,
+    "taxa_historica_periodo": 0.0015,
+    "trecho_km": 0.0,
+    "lat": 0.0,
+    "lon": 0.0,
+    "periodo_idx": 0.0,
+    "vmd": 0.0,
+    "br": 0.0,
+    "delegacia": 0.0
+  },
+  "psi_max": 0.0993,
+  "taxa_referencia": 0.01905,
+  "taxa_atual": 0.02057,
+  "razao_taxa": 1.079,
+  "alerta": false,
+  "motivos": [],
+  "linhas_referencia": 92628,
+  "linhas_atual": 30876
+}

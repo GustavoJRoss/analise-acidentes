@@ -1,0 +1,21 @@
+feature,voto_selectkbest_mi,voto_random_forest,voto_rfe_logistica,rank_selectkbest_mi,rank_random_forest,rank_rfe_logistica,votos,media_ranking,eleita,motivo
+taxa_historica_periodo,1,1,1,3,1,1,3,1.67,True,≥ 2 votos
+acid_ult_365d,1,1,1,6,2,4,3,4.0,True,≥ 2 votos
+lon,1,1,1,1,5,8,3,4.67,True,≥ 2 votos
+delegacia,1,1,1,7,6,3,3,5.33,True,≥ 2 votos
+br,1,1,1,8,9,2,3,6.33,True,≥ 2 votos
+trecho_km,1,1,1,9,10,9,3,9.33,True,≥ 2 votos
+lat,1,0,1,2,12,7,2,7.0,True,≥ 2 votos
+taxa_historica,1,1,0,4,3,16,2,7.67,True,≥ 2 votos
+vmd,1,1,0,5,4,20,2,9.67,True,≥ 2 votos
+temperatura,0,1,1,13,7,10,2,10.0,True,≥ 2 votos
+nebulosidade,1,1,0,10,8,15,2,11.0,True,≥ 2 votos
+periodo_idx,0,0,1,11,11,5,1,9.0,False,
+fim_de_semana,0,0,1,15,16,6,1,12.33,False,
+chuva_mm,0,0,0,12,14,11,0,12.33,False,
+dia_semana,0,0,0,14,13,12,0,13.0,False,
+mes,0,0,0,16,15,14,0,15.0,False,
+temporada_verao,0,0,0,19,18,13,0,16.67,False,
+pandemia,0,0,0,17,17,17,0,17.0,False,
+vespera_ou_pos_feriado,0,0,0,18,19,19,0,18.67,False,
+feriado,0,0,0,20,20,18,0,19.33,False,

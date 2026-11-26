@@ -1,0 +1,8 @@
+{
+  "roc_auc": 0.8189,
+  "pr_auc": 0.1367,
+  "brier": 0.01927,
+  "razao_prevista_observada": 0.934,
+  "captura_top_10pct": 0.5012,
+  "captura_top_5pct": 0.3641
+}

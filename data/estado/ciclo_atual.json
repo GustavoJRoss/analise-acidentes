@@ -1,65 +1,66 @@
 {
-  "cycle_id": "20261125-1914-45683118417",
-  "data_version": "v2024-02-a4669ce4",
-  "iniciado_em": "2026-11-25T19:14:51+00:00",
+  "cycle_id": "20261126-1859-45880076819",
+  "data_version": "v2024-03-dbd7268e",
+  "iniciado_em": "2026-11-26T18:59:29+00:00",
   "lotes": [
     "2024-01",
-    "2024-02"
+    "2024-02",
+    "2024-03"
   ],
   "lotes_novos": [
-    "2024-02"
+    "2024-03"
   ],
-  "fim_dos_dados": "2024-02-29",
-  "linhas_brutas": 142343,
-  "linhas_brutas_novas": 1756,
-  "duplicatas_removidas": 134482,
+  "fim_dos_dados": "2024-03-31",
+  "linhas_brutas": 143972,
+  "linhas_brutas_novas": 1629,
+  "duplicatas_removidas": 136808,
   "primeiro_ciclo": false,
   "gatilho": "schedule",
-  "inicio_validacao": "2023-09-01",
-  "run_etl": "45c81ea4e3864c948521f872036085d3",
+  "inicio_validacao": "2023-10-01",
+  "run_etl": "f21a19229a6949278c1de9f891b4c7f3",
   "alerta_drift": false,
   "features_eleitas": [
     "taxa_historica_periodo",
-    "taxa_historica",
-    "delegacia",
-    "br",
     "acid_ult_365d",
     "lon",
+    "delegacia",
+    "br",
+    "trecho_km",
     "lat",
+    "taxa_historica",
     "vmd",
     "temperatura",
-    "trecho_km",
     "nebulosidade"
   ],
-  "run_votacao": "d9e794318c484bc793faddef127167f8",
+  "run_votacao": "1a15c54e513c47f4bd57b4af2b0a520f",
   "candidatos": {
     "logistica": {
       "modelo": "A",
       "algoritmo": "logistica",
-      "run_id": "05aea05d1e5f46f6987189ff42cef174",
+      "run_id": "31db5f2e9d344a6d8a5552c257393490",
       "metricas": {
-        "roc_auc": 0.7975,
-        "pr_auc": 0.1313,
-        "brier": 0.01927,
-        "razao_prevista_observada": 0.997,
-        "captura_top_10pct": 0.479,
-        "captura_top_5pct": 0.3487
+        "roc_auc": 0.8004,
+        "pr_auc": 0.133,
+        "brier": 0.01922,
+        "razao_prevista_observada": 1.011,
+        "captura_top_10pct": 0.4854,
+        "captura_top_5pct": 0.3519
       }
     },
     "hist_gradient_boosting": {
       "modelo": "B",
       "algoritmo": "hist_gradient_boosting",
-      "run_id": "06c09688beea44c398577732832b0306",
+      "run_id": "1782296035934bf59329570d2ad06ae9",
       "metricas": {
-        "roc_auc": 0.8185,
-        "pr_auc": 0.1374,
-        "brier": 0.01911,
-        "razao_prevista_observada": 0.961,
-        "captura_top_10pct": 0.5015,
-        "captura_top_5pct": 0.3593
+        "roc_auc": 0.8225,
+        "pr_auc": 0.1362,
+        "brier": 0.01906,
+        "razao_prevista_observada": 0.97,
+        "captura_top_10pct": 0.5067,
+        "captura_top_5pct": 0.3617
       }
     }
   },
-  "decisao": "promovido",
-  "run_decisao": "5db7b04279b04b53bd1452ed2ef77a2c"
+  "decisao": "mantido",
+  "run_decisao": "60678084eefd4263a719c72df363778e"
 }
