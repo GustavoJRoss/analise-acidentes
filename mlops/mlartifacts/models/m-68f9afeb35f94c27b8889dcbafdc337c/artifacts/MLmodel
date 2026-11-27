@@ -1,0 +1,23 @@
+artifact_path: file:///home/runner/work/analise-acidentes/analise-acidentes/mlops/mlartifacts/models/m-68f9afeb35f94c27b8889dcbafdc337c/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.16
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+mlflow_version: 3.18.0
+model_id: m-68f9afeb35f94c27b8889dcbafdc337c
+model_size_bytes: 3630
+model_uuid: m-68f9afeb35f94c27b8889dcbafdc337c
+prompts: null
+run_id: f222d35fa30c42deb6fc0d075be519df
+utc_time_created: '2026-11-27 18:58:03.023422'
