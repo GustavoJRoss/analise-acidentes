@@ -308,7 +308,65 @@
       "decisao": "mantido",
       "motivo": "pr_auc 0.1399 vs vigente 0.1396: melhoria 0.0003 < limiar 0.002",
       "vigente_apos": "20261125-1914-45683118417"
+    },
+    {
+      "cycle_id": "20261128-1731-46170804405",
+      "data_version": "v2024-05-ef7d78aa",
+      "gatilho": "schedule",
+      "lotes_novos": [
+        "2024-05"
+      ],
+      "features_eleitas": [
+        "taxa_historica_periodo",
+        "acid_ult_365d",
+        "delegacia",
+        "br",
+        "lat",
+        "vmd",
+        "lon",
+        "taxa_historica",
+        "periodo_idx",
+        "temperatura",
+        "nebulosidade"
+      ],
+      "candidatos": {
+        "logistica": {
+          "modelo": "A",
+          "algoritmo": "logistica",
+          "run_id": "56c4842f554e419786aa52589795e299",
+          "metricas": {
+            "roc_auc": 0.7995,
+            "pr_auc": 0.1385,
+            "brier": 0.01986,
+            "razao_prevista_observada": 0.969,
+            "captura_top_10pct": 0.4755,
+            "captura_top_5pct": 0.349
+          }
+        },
+        "hist_gradient_boosting": {
+          "modelo": "B",
+          "algoritmo": "hist_gradient_boosting",
+          "run_id": "f958ee5336ce4bc5bb45c6946624a131",
+          "metricas": {
+            "roc_auc": 0.8203,
+            "pr_auc": 0.1454,
+            "brier": 0.01972,
+            "razao_prevista_observada": 0.919,
+            "captura_top_10pct": 0.5004,
+            "captura_top_5pct": 0.362
+          }
+        }
+      },
+      "vencedor_ciclo": "hist_gradient_boosting",
+      "metrica": "pr_auc",
+      "valor_vencedor": 0.1454,
+      "falhas_qualidade": [],
+      "valor_vigente": 0.1443,
+      "melhoria": 0.0011,
+      "decisao": "mantido",
+      "motivo": "pr_auc 0.1454 vs vigente 0.1443: melhoria 0.0011 < limiar 0.002",
+      "vigente_apos": "20261125-1914-45683118417"
     }
   ],
-  "ultimo_ciclo": "20261127-1856-46053022288"
+  "ultimo_ciclo": "20261128-1731-46170804405"
 }
